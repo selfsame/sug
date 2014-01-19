@@ -1,6 +1,10 @@
+out
+/out
+/checkouts
 pom.xml
 *jar
 /lib/
-/classes/
-/targets/
+/js/
+/target/
 .lein-deps-sum
+*.js
