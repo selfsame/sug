@@ -7,28 +7,27 @@ This is my attempt at sweetening the workflow for om/react. It's currently in fl
 rationale is to a simple convention for core.asyn chan routing between components.
 
 ```clj
-(defcomp foobar
-  [app owner opts]
+(sug/defcomp foobar
+  [cursor this opts]
 
-  ;; sug/defcomp takes a map that expands into the reified om functions
+  ;; defcomp takes a map that expands into the reified om functions
+  ;; :will-mount :did-mount :will-update :did-update :will-unmount
 
- {:init-state (fn [_] {})
-  :will-mount (fn [_])
-  :did-mount (fn [_ _])
-  :will-update (fn [_ _ _])
-  :did-update (fn [_ _ _ _])
-  :will-unmount (fn [_] )
+ {:init-state 
+  (fn [_] {:active false})
 
   :render
   (fn [_]
       (dom/button #js 
       	{:onClick (fn [e] 
-      		(fire! owner :my-button {:some 'stuff'}))} "clickit"))
+      		(sug/fire! this :my-button {:some 'stuff'}))} 
+      	(str (om/get-state this :active))))
 
   ;; named event handlers.  These create core.async chans, which are
   ;; passed down the component heirarchy.  
   :on {:my-button
-       (fn [app owner e] (js/alert "event recieved")) }})
+       (fn [cursor this data] 
+       	(om/set-state! this :active (not (om/get-state this :active)) ))}})
 ```
 
 ## Future Ideas
