@@ -18,9 +18,12 @@
     (om/set-state! owner korks v))
 
 (defn -origin []
-  (let [c (chan)]
-  {:chan c
-   :pub (pub c map?)}))
+  (let [up (chan)
+        down (chan)]
+  {:chan-up up
+   :chan-down down
+   :pub-up (pub up map?)
+   :pub-down (pub down map?)}))
 
 
 (defn -register [exant new]
@@ -28,9 +31,8 @@
         clones (zipmap (keys exant) (repeatedly #(-origin)))
         virgin (zipmap unmade (repeatedly #(-origin)))]
     (dorun (map (fn [ex cl]
-                  ; Useful top down flow
-                  ;(sub (:pub ex) true (:chan cl))
-                  (sub (:pub cl) true (:chan ex))
+                  (sub (:pub-up cl) true (:chan-up ex))
+                  (sub (:pub-down ex) true (:chan-down cl))
                   ) (vals exant) (vals clones) ))
    (merge clones virgin)))
 
@@ -38,12 +40,26 @@
   (let [c (chan)]
         (sub p true c) c))
 
-(defn fire! [owner k e]
+(defn -fire! [dir owner k e]
   (when-let [chans (om/get-state owner :_events)]
     (let [kcol (if (sequential? k) k [k])]
       (dorun (for [sk kcol]
         (when-let [target (sk chans)]
-          (put! (:chan target) e) ))))))
+          (when (#{:down :both} dir) (put! (:chan-down target) e))
+          (when (#{:up :both} dir) (put! (:chan-up target) e)) ))))))
+
+
+(defn fire! [o k e]
+  (-fire! :up o k e))
+
+(defn fire-up! [o k e]
+  (-fire! :up o k e))
+
+(defn fire-down! [o k e]
+  (-fire! :down o k e))
+
+(defn fire-both! [o k e]
+  (-fire! :both o k e))
 
 (defn -event-setup [app owner]
   (let [state (om/get-state owner)]
@@ -52,10 +68,15 @@
         (let [hk (keys handlers)
               pkv (select-keys published hk)]
           (dorun (for [k (keys pkv)
-                 :let [pub (:pub (k pkv))
+                 :let [pub-down (:pub-down (k pkv))
+                       pub-up (:pub-up (k pkv))
                        f (k handlers)
-                       c (p-sub->c pub)]]
-                 (go (while true (f (<! c) app owner ))))))))))
+                       c-d (p-sub->c pub-down)
+                       c-u (p-sub->c pub-up)]]
+               (do
+                 (go (while true (f (<! c-u) app owner )))
+                 (go (while true (f (<! c-d) app owner )))
+                  ))))))))
 
 
 
