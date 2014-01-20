@@ -37,14 +37,17 @@ defcomp takes a map that expands into the reified om functions
   (fn [_ state]
       (dom/label nil
           (dom/span nil (str (:active state)))
- ```
- make and make-all are just wrappers to om/build om/build-all, to automate our event channel propigation
- between elements
+```
+
+make and make-all are just wrappers to om/build om/build-all, to automate our event channel propigation
+between elements
+
 ```clj
           (sug/make button cursor {})))
-```clj
-You can declare sug event handlers as follows. These will create a core.async chan, which are chained down the component heirarchy. If this component is provided a chan with matching key it will use that instead
 ```
+You can declare sug event handlers as follows. These will create a core.async chan, which are chained down the component heirarchy. If this component is provided a chan with matching key it will use that instead
+
+```clj
   :on {:activate
        (fn [e cursor owner]
         (om/set-state! owner :active (not (om/get-state owner :active)) ))}})
@@ -59,8 +62,7 @@ Events can be broadcast up and down the heirarchy with fire-up!, fire-down!, and
 (sug/fire! owner [:my-button] {:c2 (:c2 state)})
            ;takes owning component, k or ks to fire into, and the map package
 
-```clj
-
+```
 [Some notes and ideas](https://github.com/selfsame/sug/blob/master/notes.md) on the event routing.
 
 ## Future Ideas
