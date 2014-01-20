@@ -16,7 +16,7 @@ Experiments with macros for om/react.
 (enable-console-print!)
 ```
 defcomp takes a map that expands into the reified om functions
-# :init-state :will-mount :did-mount :will-update :did-update :will-unmount :render :render-state
+:init-state :will-mount :did-mount :will-update :did-update :will-unmount :render :render-state
 
 ```clj
 (sug/defcomp button
