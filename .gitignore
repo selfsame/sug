@@ -6,5 +6,6 @@ pom.xml
 /lib/
 /js/
 /target/
+/tests/
 .lein-deps-sum
 *.js

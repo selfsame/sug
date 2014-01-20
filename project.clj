@@ -9,25 +9,48 @@
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [org.clojure/clojurescript "0.0-2138" :scope "provided"]
                  [org.clojure/core.async "0.1.267.0-0d7780-alpha" :scope "provided"]
-                 [om "0.1.7"]]
+                 [om "0.2.0"]]
 
-  :plugins [[lein-cljsbuild "0.3.4"]]
+  :plugins [[lein-cljsbuild "1.0.1"]]
 
   :cljsbuild {:builds
-              [
-              {:id "simple"
-				:source-paths ["src" "examples/simple/src"]
-				:compiler {
-					:output-to "examples/simple/main.js"
-					:output-dir "examples/simple/out"
-					:optimizations :none}}
-               {:id "clickey-squares"
-				:source-paths ["src" "examples/clickey-squares/src"]
-				:compiler {
-					:output-to "examples/clickey-squares/main.js"
-					:output-dir "examples/clickey-squares/out"
-					:optimizations :none}}
-                           ]})
+              [{:id "dev"
+                :source-paths ["src"]
+                :compiler {
+                           :output-to "main.js"
+                           :output-dir "out"
+                           :optimizations :whitespace
+                           :pretty-print true}}
+
+               {:id "test"
+                :source-paths ["src" "tests/src"]
+                :compiler {
+                           :output-to "tests/tests.simple.js"
+                           :output-dir "tests/out"
+                           :output-wrapper false
+                           :optimizations :simple}}
+               {:id "simple"
+                :source-paths ["src" "examples/simple/src"]
+                :compiler {
+                           :output-to "examples/simple/main.js"
+                           :output-dir "examples/simple/out"
+                           :source-map true
+                           :optimizations :none}}
+               {:id "events"
+                :source-paths ["src" "examples/events/src"]
+                :compiler {
+                           :output-to "examples/events/main.js"
+                           :output-dir "examples/events/out"
+                           :source-map true
+                           :optimizations :none}}
+               {:id "squares"
+                :source-paths ["src" "examples/squares/src"]
+                :compiler {
+                           :output-to "examples/squares/main.js"
+                           :output-dir "examples/squares/out"
+                           :source-map true
+                           :optimizations :none}}
+               ]})
 
 
 
