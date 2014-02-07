@@ -1,31 +1,19 @@
 sug
 ===
 
-sugar for [Om](https://www.github.com/swannodette/om/)
+sugar for [Om](https://www.github.com/swannodette/om/) and core.async.
 
-Experiments with macros for om/react.
-
-```clj
-(ns examples.simple.core
-  (:require
-      [om.core :as om :include-macros true]
-      [om.dom :as dom :include-macros true]
-      [sug.core :as sug :include-macros true]
-      [cljs.core.async :as async :refer [>! <! put! chan dropping-buffer]]))
-
-(enable-console-print!)
-```
-defcomp takes a map that expands into the reified om functions
-:init-state :will-mount :did-mount :will-update :did-update :will-unmount :render :render-state
+Sug uses macros to automate core.async chan connections along om component heirarchies, letting you fire and handle named events.  It also uses a map structure for om lifecycle functions that expands into the reified om component.
 
 ```clj
 (sug/defcomp button
-  [cursor this]
+  [cursor owner]
   {:render-state
   (fn [_ state]
       (dom/button #js
         {:onClick (fn [e]
-            (sug/fire! this :activate {:some 'stuff'}))} "toggle"))})
+            ;here we fire some data up the heirarchy
+            (sug/fire! owner :activate {:some 'stuff'}))} "toggle"))})
 
 (sug/defcomp label
   [cursor this]
@@ -37,36 +25,34 @@ defcomp takes a map that expands into the reified om functions
   (fn [_ state]
       (dom/label nil
           (dom/span nil (str (:active state)))
-```
 
-make and make-all are just wrappers to om/build om/build-all, to automate our event channel propigation
-between elements
-
-```clj
+          ;make and make-all are just wrappers to om/build om/build-all,
+          ;to automate our event channel propigation between elements
           (sug/make button cursor {})))
-```
-You can declare sug event handlers as follows. These will create a core.async chan, which are chained down the component heirarchy. If this component is provided a chan with matching key it will use that instead
 
-```clj
+  ;sug event chans are declared by an handler entry in the :on map. If the chan is allready existing, it will use it instead.
   :on {:activate
        (fn [e cursor owner]
         (om/set-state! owner :active (not (om/get-state owner :active)) ))}})
 
 (om/root {} label (.-body js/document ))
+
 ```
 
 ## Events
 
-Events can be broadcast up and down the heirarchy with fire-up!, fire-down!, and fire-both!. (fire! is also up)
+Events can be broadcast up and down the heirarchy with `fire!` (bubbles up), `fire-down!`, and `fire-both!`. 
 ```clj
 (sug/fire! owner [:my-button] {:c2 (:c2 state)})
            ;takes owning component, k or ks to fire into, and the map package
 
 ```
+
+Events use core.async pub/sub to broadcast to all siblings, which clone/link when stepping down a generation.
+
+It's currently not possible to 'preventDefault' on catching an event, but it's a future goal.
+
+It's not possible to add sug events at runtime, but this is also a goal.
+
 [Some notes and ideas](https://github.com/selfsame/sug/blob/master/notes.md) on the event routing.
 
-## Future Ideas
-
-I'd like to explore component mixins, perhaps mixins would have thier own namespace for their
-state, and their different lifecycle code would be executed in the same order that you composed
-them.

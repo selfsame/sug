@@ -1,3 +1,5 @@
+
+
 (ns examples.events.core
   (:require-macros [cljs.core.async.macros :refer [go alt!]]
                    [sug.core :refer [defcomp]])
@@ -25,23 +27,32 @@
 
  {:init-state
    (fn [_] {:c2 (rand-color)} )
-
+  :will-mount
+  (fn [_]
+    (let [state (om/get-state owner)
+          idx (last (om/path cursor))
+          width (:width state)]
+      ;(om/set-state! owner :width (+ (* idx 150) left))
+      ))
   :render-state
   (fn [_ state]
 
-      (dom/div #js {:className "person"}
+      (dom/div #js {:className "person" :style #js {:width (str (:width state) "%") }}
+      (dom/div #js {:className "box"}
         (dom/div #js {:className "header"
                       :style #js {:background-color (color-str (:color state))}}
           (dom/h3 nil (:name cursor))
           (dom/button #js {:onClick (fn [e] (sug/fire! owner [:my-button] {:c2 (:c2 state)}))} "up")
           (dom/button #js {:onClick (fn [e] (sug/fire-both! owner [:my-button] {:c2 (:c2 state)}))} "both")
           (dom/button #js {:onClick (fn [e] (sug/fire-down! owner [:my-button] {:c2 (:c2 state)}))} "down"))
-        (dom/p nil (prn-str (keys (:_events state))))
-        (dom/p #js {:style #js {:background-color (:message state)}} (prn-str  (:message state)))
-        (sug/make-all person (:children cursor) {:init-state {:color (:color state)
+        (dom/p nil (prn-str  (om/path cursor)))
+        (dom/p #js {:style #js {:background-color (:message state)}} (prn-str  (:message state))))
+        (apply dom/div #js {:className "children"}
+          (sug/make-all person (:children cursor) {:init-state {:color (:color state)
                                                    :age (:age state)
-                                                   :parent (:parent state)}
-                                      :state {:color (:color state)}})))
+                                                   :parent (:parent state)
+                                                   :width (/ 100 (count (:children cursor)))}
+                                      :state {:color (:color state)}}))))
 
   :on {:sibling (fn [e cursor owner e]
                   (let [who nil ;(:who e)
@@ -57,27 +68,28 @@
            ))}})
 
 
-(def DATA (atom {:name "grandpa h"
-                 :children
-                 [{:name "mary"
-                   :children
-                   [{:name "sue"
-                     :children
-                     [{:name "bobby"
-                       :children []} ]}
-                    {:name "walter"
-                     :children []}]}
-                  {:name "john"
-                   :children
-                   [{:name "fred"
-                     :children []}
-                    {:name "donny"
-                     :children []}
-                    {:name "andrew"
-                     :children []}]} ]}))
+
 
 (def PEEPS
 ["albert" "mary" "george" "lucy" "david" "robert" "sarah"
+ "marvin" "leroy" "amanda" "jason" "robbie" "james" "andrew"
+ "sophie" "marcella" "reginald" "luther" "sandy" "aaron"
+ "albert" "mary" "george" "lucy" "david" "robert" "sarah"
+ "marvin" "leroy" "amanda" "jason" "robbie" "james" "andrew"
+ "sophie" "marcella" "reginald" "luther" "sandy" "aaron"
+ "albert" "mary" "george" "lucy" "david" "robert" "sarah"
+ "marvin" "leroy" "amanda" "jason" "robbie" "james" "andrew"
+ "sophie" "marcella" "reginald" "luther" "sandy" "aaron"
+ "albert" "mary" "george" "lucy" "david" "robert" "sarah"
+ "marvin" "leroy" "amanda" "jason" "robbie" "james" "andrew"
+ "sophie" "marcella" "reginald" "luther" "sandy" "aaron"
+ "albert" "mary" "george" "lucy" "david" "robert" "sarah"
+ "marvin" "leroy" "amanda" "jason" "robbie" "james" "andrew"
+ "sophie" "marcella" "reginald" "luther" "sandy" "aaron"
+ "albert" "mary" "george" "lucy" "david" "robert" "sarah"
+ "marvin" "leroy" "amanda" "jason" "robbie" "james" "andrew"
+ "sophie" "marcella" "reginald" "luther" "sandy" "aaron"
+ "albert" "mary" "george" "lucy" "david" "robert" "sarah"
  "marvin" "leroy" "amanda" "jason" "robbie" "james" "andrew"
  "sophie" "marcella" "reginald" "luther" "sandy" "aaron"
  "albert" "mary" "george" "lucy" "david" "robert" "sarah"
@@ -110,7 +122,7 @@
 (defn group [peeps funct]
   (loop [names peeps result [] ]
   (if (empty? names) result
-    (let [n (inc (inc (rand-int 5)))
+    (let [n (inc (inc (rand-int 3)))
           remainder (drop n names)
           taken (take n names)]
     (recur remainder
@@ -122,8 +134,9 @@
 (def TH  (group FIRST aa))
 
 (def SEC (group TH aa))
-
-(def DATA SEC)
+(def HA (group SEC aa))
+(def PO (group HA aa))
+(def DATA HA)
 
 (map :children DATA)
 
@@ -131,8 +144,8 @@
   [cursor owner opts]
   {:render
   (fn [_]
-    (dom/div nil
-             (sug/make-all person cursor {:key :name :init-state {:age 97 :color [200 200 120]}})
+    (apply dom/div #js {:className "children"}
+             (sug/make-all person cursor {:key :name :init-state {:age 97 :color [200 200 120] :width (/ 100 (count  cursor))}})
    ))
    :on{:event (fn [_ _ _] (prn "EvENT"))}})
 

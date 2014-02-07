@@ -6,15 +6,30 @@
     <!--[if lt IE 9]>
     <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
-    <script type='text/javascript' id='lt_ws' src='http://localhost:63949/socket.io/lighttable/ws.js'></script>
+   <script type='text/javascript' id='lt_ws' src='http://localhost:55447/socket.io/lighttable/ws.js'></script>
+
     <style>
         .person{
-        border: 1px solid black;
-        min-height:40px;
-        max-width:1400px;
+
+        height:120px;
+        width:100%;
             position:relative;
-         margin:10px;
+        margin-top:10px;
+            box-sizing:border-box;
         float:left;}
+
+        .box{
+        border: 1px solid black;
+        height:120px;
+        width:140px;
+            position:relative;
+        margin:0px auto;
+            box-sizing:border-box;}
+
+        .children{
+        position:relative;
+        width:100%}
+
         .header {
         position:relative;
             width:100%;

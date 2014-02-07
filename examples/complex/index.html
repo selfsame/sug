@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Complex</title>
+    <!--[if lt IE 9]>
+    <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <script type='text/javascript' id='lt_ws' src='http://localhost:55447/socket.io/lighttable/ws.js'></script>
+
+    <link rel="stylesheet" href="webfonts/sourcecodepro/stylesheet.css">
+<link rel="stylesheet" href="./css/style.css" type="text/css" media="all" />
+<link rel="stylesheet" href="./css/style-widgets.css" type="text/css" media="all" />
+<link rel="stylesheet" href="./css/outliner.css" type="text/css" media="all" />
+<link rel="stylesheet" href="./css/mode-box.css" type="text/css" media="all" />
+    <style></style>
+</head>
+
+<body>
+
+    <div id="main"></div>
+
+
+    <div id="data"><div class="group1 group9" id="main">
+    <p class="group1">I'd write a bunch of javascript to construct html, then I'd turn it into
+        DOM, then I'd write a bunch more js to get references to the parts of the
+        html I would need, then if it was important enough I'd make a class to
+        represent the widget, and write a bunch more js to wrap it up.</p>
+    <h1 class="group1 group3 group10">First h1<br class=""></h1>
+    <p class="excerpt group11">I like making interfaces, but they're taking up all my dev time.</p>
+    <div
+    class="picture group2 group5 group12"></div>
+<p class="group1">I'd write a bunch of javascript to construct html, then I'd turn it into
+    DOM, then I'd write a bunch more js to get references to the parts of the
+    html I would need, then if it was important enough I'd make a class to
+    represent the widget, and write a bunch more js to wrap it up.</p>
+<p class="">I even started designing my own 'compile to html' markup, the idea was
+    to put html/css/javascript in a module file that would get compiled into
+    a prepackaged import with it's own scope, the html markdown let you assign
+    markup to variables, and label specific parts of it. I more or less had
+    it working (at least parsing html and packaging it with js in a private
+    namespace)</p>
+<h1 class="group1 group3 group13">I am a h1 tag.<br></h1>
+<p class="code_dark group2 group6">dialogue = div.new_font img.icon{src="img/name.png"} label.name "family
+    name" input:family.name hr button:done.float_right {disabled:true}/"done"
+    button:cancel.float_right/"cancel"</p>
+<p class="caption group7 group14">this code almost worked.</p>
+<p class="">Then I started paying attention to "Web Components", which I'd heard about
+    but dismissed without understanding.</p>
+<div class="picture group2 group5 group15"></div>
+<p class="">Components are a set of WC3 specs for declarative scoped DOM.</p>
+<p class="group1">html imports (instead of using js to fetch files)</p>
+<p class="group1">&lt;template&gt; tags that aren't processed but can be instanced custom
+    elements with their own private scope for CSS/JS/HTML</p>
+<p class="group1">shadow dom - DOM that is private to an element, and can select 'public'
+    children to sprinkle inside it's hidden structure as needed.</p>
+<p class="">Polymer http://www.polymer-project.org/ is a framework for making components
+    built on a polyfill shim to make it all work as it should until the specs
+    are fully adopted.</p>
+<p class="">I made a &lt;class-toggle&gt; element that toggles a class on itself or
+    a target, and a &lt;select-set&gt; that has a value of its selected children.
+    On the markup side it looks like:</p>
+<p class="code_dark group2 group6">&lt;select-set use_class="active" multi=false&gt; &lt;class-toggle use_class="active"&gt;&lt;/class-toggle&gt;
+    &lt;class-toggle use_class="active"&gt;&lt;/class-toggle&gt; &lt;class-toggle
+    use_class="active"&gt;&lt;/class-toggle&gt; &lt;/select-set&gt;
+    <br>
+</p>
+<p class="caption group1 group7 group16">Simple, declarative structure.
+    <br>
+</p>
+<p class="">I could write a bit of javascript to get the same effect for a target
+    HTML node, or construct something to insert, but in practice I don't reuse
+    that kind of stuff and just reinvent the wheel every time.</p>
+<p class="">Another element I made is &lt;scrub-handle&gt; which can be assigned an
+    object.property to change based on a mouse axis (with a modifier and limits)
+    You still have to assign the connections in js, but it's proving really
+    useful any time I have some sort of drag / resize interaction.</p>
+<h1 class="group1 group3 group17">Last h1<br></h1>
+<p class="">some text here.</p>
+<h1 class="group1 group3 group18">Last Element<br></h1>
+</div>
+</div>
+
+
+
+
+    <script src="http://fb.me/react-0.8.0.js"></script>
+    <script src="out/goog/base.js" type="text/javascript"></script>
+    <script type="text/javascript" src="main.js"></script>
+	  <script type="text/javascript">goog.require("examples.complex.core");</script>
+</body>
+</html>
+
+
+
