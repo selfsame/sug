@@ -37,6 +37,12 @@
                            :output-dir "examples/simple/out"
                            :source-map true
                            :optimizations :none}}
+               {:id "sortable"
+                :source-paths ["src" "examples/sortable/src"]
+                :compiler {
+                           :output-to "examples/sortable/main.js"
+                           :output-dir "examples/sortable/out"
+                           :optimizations :none}}
                {:id "events"
                 :source-paths ["src" "examples/events/src"]
                 :compiler {

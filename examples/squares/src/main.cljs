@@ -16,24 +16,6 @@
 (defn get-UID []
   (keyword (str (swap! UID inc))))
 
-(defn put-local [k v]
-  (.setItem (aget  js/window "localStorage") k v))
-
-(defn get-local [k]
-  (.getItem (aget  js/window "localStorage") k ))
-
-(defn atom? [x] (= (type x)(type (atom []))))
-
-
-(defn pprint [thing &[ind]]
-  (let [indent (or ind "")]
-  (cond
-    (map? thing)
-    (str "{"  (string/join (str "\n" indent " ") (map (fn[p] (str (key p) "  " (pprint (val p) (str indent "  "))) ) thing) )"}")
-    (vector? thing) (str "[" (string/join (str "\n" indent " ") (map (fn[a] (pprint a (str indent "  "))) thing) )"]")
-   (fn? thing) :function
-    (atom? thing) (pprint @thing (str indent "  "))
-    :else thing)))
 
 (defn bucket-to-key [v]
   (if (vector? v)
@@ -45,17 +27,6 @@
   (let [end (re-find #"[0-9]+$" (str k))
         start (re-find #"\d+[0-9]" (str k))]
     (when-not (= (count end) (count start) "") [(js/parseInt start) (js/parseInt end)] )))
-
-
-
-(def DATA
-  (atom {:buckets
-          {
-           (bucket-to-key [23 7]) {:uid :0 :color [112 254 78] :background-color [72 6 218]}
-          } }))
-
-
-
 
 
 (defn to-bucket
@@ -113,19 +84,19 @@
     (om/transact! data #(merge % {:color color
                               :background-color background-color} ))))
 
- :render
- (fn [_]
-   (let [uid (sug/state owner :uid)
-         box (sug/state owner :box)]
+ :render-state
+ (fn [_ state]
+   (let [uid (:uid state)
+         box (:box state)]
    (dom/span #js {:style #js {:left (px (:left box))
                               :top (px (:top box))
-                              :color (color-str (sug/state owner :color))
-                              :background-color (color-str (sug/state owner :background-color))}
+                              :color (color-str (:color state))
+                              :background-color (color-str (:background-color state))}
                   :className "foobar"
                   :onClick #(sug/fire! owner [:box-click] {}) } uid )))
 
   :on {:box-click
-       (fn [app owner e]
+       (fn [e]
          (let [[r g b] (repeatedly #(int (* (rand) 255)))
                [ir ig ib] (map #(- 255 %) [r g b])
                c (str "rgb("r","g","b")")
@@ -137,78 +108,54 @@
 
 
 
-(sug/defcomp foobar
+(sug/defcomp game
   [app me opts]
 
  {:init-state
-  (fn [_]
-
-    {:box {:left 30} })
-
-  :will-mount
-  (fn [_] )
-
-  :did-mount
-  (fn [_ _]  )
+  (fn [_] {:box {:left 30} :to-spawn []})
 
   :will-update
   (fn [_ _ _]
     (when-let [to-spawn (om/get-state me :to-spawn)]
+      (prn to-spawn)
       (let [non-dups (filter  #(not (contains? app %)) to-spawn)]
         (when (pos? (count non-dups))
-          (let [
-              neighbors (om/get-state me :neighbors)
-              n-col
-                     (map #(:color (get app (bucket-to-key %) ) ) neighbors)
-              av-col  (map #(int (* (/ 1 (count n-col)) %)) (apply map + n-col))
-              new (zipmap
-                   non-dups
-                   (repeatedly (fn [] {:uid (get-UID)
-                                       :background-color
-                                       (color-wander av-col [20 20 20]) })))]
+          (let [neighbors (om/get-state me :neighbors)
+                n-col (map #(:color (get app (bucket-to-key %) ) ) neighbors)
+                av-col  (map #(int (* (/ 1 (count n-col)) %)) (apply map + n-col))
+                new (zipmap non-dups
+                            (repeatedly (fn [] {:uid (get-UID)
+                                                :background-color (color-wander av-col [20 20 20]) })))]
+            (om/transact! app  #(merge % new )))))))
 
-        (om/transact! app [] #(merge % new )))))))
-
-  :did-update
-  (fn [_ _ _ _])
-
-  :will-unmount
-  (fn [_] )
-
-  :render
-  (fn [_]
-    (prn "-----")
-
-    (let [box (sug/state me :box) ]
-      (when-let [to-spawn (sug/state me :to-spawn)]
+  :render-state
+  (fn [_ state]
+    (let [box (:box state) ]
+      (when-let [to-spawn (:to-spawn state)]
         (sug/state! me :to-spawn nil))
 
-
-      (dom/div #js {:className "screen"
+      (apply dom/div #js {:className "screen"
                     :onClick (fn [e] (sug/fire! me [:screen-click] {:pos (location e) })) }
-         (into-array
-          ;(cons (dom/p #js {:className "debug" :ref "debug"} (pprint app) )
+
           (for [[k v] app]
-           (om/build square (k app) {:key :uid :opts {:key k}})))
-               )))
+           (sug/make square (k app) {:key :uid :opts {:key k}})))))
 
-  :on {
-       :screen-click
-       (fn [app owner e]
-
-         (let [b (to-bucket (:pos e))
+  :on {:screen-click
+       (fn [e]
+         (let [state (om/get-state me)
+               b (to-bucket (:pos e))
                nei (neighbors b)
-               occ (filter #(om/read app (fn [c] (contains? c (bucket-to-key %) ))  ) nei)]
+               occ (filter #(contains? @app (bucket-to-key %))  nei)]
+
           (when (pos? (count occ))
-            (sug/state! owner :to-spawn (conj (or (sug/state owner :to-spawn) []) (bucket-to-key b) ))
-            (sug/state! owner :neighbors occ) )))}})
+            (sug/state! me :to-spawn (conj (or (:to-spawn state) []) (bucket-to-key b) ))
+            (sug/state! me :neighbors occ) )))}})
+
+
+(def DATA
+  (atom {(bucket-to-key [23 7]) {:uid :0 :color [112 254 78] :background-color [72 6 218]}}))
 
 
 
-(defn test-app [app owner opts]
-  (prn-str (om/get-state owner))
-  (om/build foobar (:buckets app) ) )
-
-
-(om/root DATA test-app (.getElementById js/document "main"))
+(om/root DATA game (.getElementById js/document "main"))
 
