@@ -6,6 +6,7 @@
       [sug.core :as sug :include-macros true]
    [cljs.core.async :as async :refer [>! <! put! chan]])
   (:use
+   [examples.complex.data :only [UID INITIAL CSS-INFO]]
    [examples.complex.util :only [value-from-node clear-nodes! location
                                  clog px to? from? within? get-xywh element-dimensions element-offset get-xywh]]))
 
@@ -30,23 +31,27 @@
    :render-state
    (fn [_ state])})
 
+(get {:a 5} :a)
+
 (sug/defcomp style-widget [data owner opts]
   {:init-state
    (fn [_]
-     (let [taxon (:taxonomy opts)
-           rule (:name (om/value data))]
+     (let [rule (:name (om/value data))]
        {:name rule
-        :measured ((:measured taxon) rule)
-        :quad ((:quad taxon) rule)
-        :compact ((:compact taxon) rule)
+        :measured ((:measured CSS-INFO) rule)
+        :quad ((:quad CSS-INFO) rule)
+        :compact ((:compact CSS-INFO) rule)
         :expanded false
         :select-set (:options (om/value data))}))
    :render-state
    (fn [_ state]
      (let [rule-name (apply str (rest (str (:name state))))
+           inline-styles (:styles state)
+           inline ((:name state) inline-styles)
            icon (:icon (om/value data))
            sub-rules (:subs data)
            root-classes (apply str "style-widget "
+                               (when inline "used ")
                                (when icon "iconed ")
                                (when (:measured state) "measured ")
                                (when (:quad state) "quad ")
@@ -64,7 +69,7 @@
            (if (:select-set state)
              (apply dom/select nil
                 (map #(dom/option #js {:value %} %) (:select-set state)))
-             (dom/input #js {:value "none"})))
+             (dom/input #js {:value (or inline "none")})))
 
          (when (:measured state)
            (dom/div #js {:className "unit"}))

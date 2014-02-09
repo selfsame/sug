@@ -1,17 +1,29 @@
 (ns sug.core)
 
-
+(merge-with conj {:a {:b [5]}} {:a {:c [7] :b 1}} (when true {:a {7 1}}))
 
 (defmacro make
   ([func cursor data]
   `(om/build ~func ~cursor
-             (update-in ~data [:init-state :_events] merge
-                        (~'om/get-state ~'__owner :_events)))))
+
+             (merge-with conj
+               (update-in ~data [:init-state :_events] merge
+                          (~'om/get-state ~'__owner :_events))
+                         {:opts {:_root (:_root ~'__opts )}}
+                          (when (~'om/get-state ~'__owner :_dirty)
+                            {:state {:_dirty (~'om/get-state ~'__owner :_dirty)}}))
+
+                    )))
 
 (defmacro make-all
   [func cursor data]
   `(om/build-all ~func ~cursor
-             (update-in ~data [:init-state :_events] merge (~'om/get-state ~'__owner :_events) )))
+             (merge-with conj
+               (update-in ~data [:init-state :_events] merge
+                          (~'om/get-state ~'__owner :_events))
+                         {:opts {:_root (:_root ~'__opts )}}
+                          (when (~'om/get-state ~'__owner :_dirty)
+                            {:state {:_dirty (~'om/get-state ~'__owner :_dirty)}}))))
 
 (defmacro defcomp [name-symbol args map-body ]
   (let [app (or (first args) nil)
@@ -36,7 +48,8 @@
                            {k {:chan '(chan) :f v }} )) on-events))]
 
   `(defn ~name-symbol ~args
-     (let [~'__owner ~owner]
+     (let [~'__owner ~owner
+           ~'__opts ~opts]
      (~'reify
         ~@(when
           init-state `(

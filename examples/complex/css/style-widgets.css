@@ -475,23 +475,23 @@ top: -16px;
 
 /*  STYLES IN USE */
 
-#fp_style div._fp_s_widget._fp_style_used input,
-div._fp_s_widget._fp_style_used div._fp_s_measure_unit,
-div._fp_s_widget._fp_style_used div._widget_select{
+.style-widget.used input,
+.style-widget.used div.unit,
+.style-widget.used .select{
    /*border-color: rgb(217, 238, 251) rgb(181, 181, 181) rgb(119, 135, 151) rgb(255, 255, 255);*/
  background-color: #D5ECFF;
 }
 
-._fp_s_widget._fp_style_used{
+.style-widget.used{
   background-color: #D3D3D3;
 
 }
 
-._fp_s_widget._fp_style_used:before{
+.style-widget.used:before{
 border-top-color: #E2E2E2;
   }
 
-._fp_s_widget._fp_style_used ._fp_s_widget_simple_title{
+.style-widget.used ._fp_s_widget_simple_title{
  /*background-color: rgb(148, 198, 225);*/
 }
 

@@ -22,7 +22,7 @@
   (:expanded data))
 
 (defn toggle-expansion [e data owner opts]
-  (om/set-state! owner :expanded (not (om/get-state owner :expanded))))
+  (om/transact! data :expanded not))
 
 (defn click-mode-option [data owner option]
   ;(om/set-state! owner :active option)
@@ -51,18 +51,17 @@
                                          (om/transact! data [:value] #(identity toggle))
                                        ))}))))))
 
-(defn modal-box [data owner opts]
-  (reify
-    om/IInitState
-    (init-state [_] {:active (:active data)})
-    om/IWillUpdate
-    (will-update [_ next-props next-state]
+
+(sug/defcomp modal-box [data owner opts]
+  {:init-state
+   (fn [_] {:active (:active data)})
+   :will-update
+   (fn [_ next-props next-state]
                  (om/set-state! owner :active (:active data)))
-    om/IRender
-    (render [_]
-      (let [state (om/get-state owner)
-            amount (count (:options data))
-            cname (str "mode-box " (when (true? (:disabled opts)) "disabled"))]
+   :render-state
+   (fn [_ state]
+      (let [amount (count (:options data))
+            cname (str "mode-box " (when (true? (:disabled state)) "disabled"))]
       (dom/div #js {:className cname}
            (into-array
             (map-indexed (fn [idx part]
@@ -73,31 +72,46 @@
                                               :else "middle "))]
                      (dom/span #js {:className class-str
                                     :style #js {:width (str (/ 100 amount ) "%")}
-                                    :onClick #(click-mode-option data owner part)} part))) (:options data))))))))
+                                    :onClick #(click-mode-option data owner part)} part))) (:options data))))))
+   :on {:mode
+        (fn [e] (om/set-state! owner :__c (rand)) )}})
 
 
-(defn dom-node [data owner opts]
-  (reify
-    om/IInitState
-    (init-state [_] {:expanded (:expanded data)})
 
-    om/IRender
-    (render [_]
-            (let [state (om/get-state owner)
-                  tag (:tag data)
+ (sug/defcomp dom-node [data owner opts]
+  {:render-state
+   (fn [_ state]
+            (let [tag (:tag data)
+
+                  targeted (= (:mouse-target (:app-state (:_root opts))) (:uid data))
+                  selected ((:selection (:app-state (:_root opts))) (:uid data))
+
+                  selected-class (str (when selected "selected ")
+                                       (when targeted "targeted ") "")
                   node-class (str
                               "outliner_node "
-                              (when (expanded? state) "open "))
-                  exp-char (cond (children? data) (cond (expanded? state) "â–¼" :else "â–º") :else " ")]
+                              (when (expanded? data) "open "))
+                  exp-class (cond (children? data) (cond (expanded? data) "exp-box expanded" :else "exp-box collapsed") :else "exp-box")]
             (apply dom/div #js {:className node-class}
-                     (dom/span #js {:className "outliner_background"})
-                     (dom/span #js {:className "exp-box" :onClick #(toggle-expansion % data owner opts)} exp-char)
+                     (dom/span #js {:className (str "outliner_background " selected-class)})
+                     (dom/span nil
+                       (dom/div #js {:className exp-class :onClick #(toggle-expansion % data owner opts)}))
                      (dom/span #js {:className (str "tag-name " tag)} tag)
                      (when (:id data) (dom/span #js {:className "id-name"} (:id data)))
-                     (when (children? data)
-                       (om/build-all dom-node (:children data) {:opts opts})
 
-                     ))))))
+                   ;quick and dirty selection boxes
+                     (when (or selected targeted)
+                       (let [[left top width height] (map px (get-xywh (:node data)))]
+                         (dom/div #js {:className (str "selection-box " selected-class)
+                                     :style #js {:height height :width width
+                                             :top top :left left}} )))
+
+                     (when (children? data)
+                       (sug/make-all dom-node (:children data) {}) ))))
+   :on {:selection
+        (fn [e] (om/set-state! owner :__c (rand)) )
+        :mouse-target
+        (fn [e] (om/set-state! owner :__c (rand)) )}})
 
 
 
@@ -106,14 +120,14 @@
     (om/set-state! owner :dragging true)
     (om/set-state! owner :start-location loc)
     (om/set-state! owner :last-location loc)
-    (sug/fire! owner :drag-start {:uid (om/get-state owner :uid)
+    (sug/fire! owner (or (om/get-state owner :drag-start) :drag-start) {:uid (om/get-state owner :uid)
                                   :location loc
                                   :start-location (om/get-state owner :start-location)
                                   :diff-location (map - loc (om/get-state owner :last-location))})))
 
 (defn drag-stop [e item owner]
   (let [loc (location e)]
-    (sug/fire! owner :drag-stop {:uid (om/get-state owner :uid)
+    (sug/fire! owner (or (om/get-state owner :drag-stop) :drag-stop) {:uid (om/get-state owner :uid)
                                  :location loc
                                  :start-location (om/get-state owner :start-location)
                                  :diff-location (map - loc (om/get-state owner :last-location))})
@@ -122,7 +136,7 @@
 
 (defn drag [e item owner]
   (let [loc (location e)]
-    (sug/fire! owner :drag {:uid (om/get-state owner :uid)
+    (sug/fire! owner (or (om/get-state owner :drag) :drag) {:uid (om/get-state owner :uid)
                             :location loc
                             :start-location (om/get-state owner :start-location)
                             :diff-location (map - loc (om/get-state owner :last-location))})
@@ -130,7 +144,6 @@
 
 (sug/defcomp draggable
   [data owner opts]
-
   {:will-update
     (fn [_ next-props next-state]
       ;; begin dragging, need to track events on window
