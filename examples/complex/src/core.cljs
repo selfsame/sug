@@ -8,10 +8,11 @@
       [examples.complex.tokenize :as tokenize]
    [examples.complex.commands :as commands]
    [examples.complex.tools :as tools]
+   [examples.complex.final :as final]
    [goog.events :as events])
   (:use
 
-    [examples.complex.data :only [UID GLOBAL INTERFACE]]
+    [examples.complex.data :only [UID GLOBAL INTERFACE MOUSE-TARGET]]
     [examples.complex.util :only [value-from-node clear-nodes! location clog px to? from? within?
                      get-xywh element-dimensions element-offset exclude]]
     [examples.complex.components :only [modal-box dom-node draggable]])
@@ -26,13 +27,25 @@
 (defn get-local [k]
   (.getItem (aget  js/window "localStorage") k ))
 
+(defn _t []
+  (aget js/window "_t"))
 
+(defn position-native [left top width height]
+  (aset (.-_m js/window) "outer_x" left)
+  (aset (.-_m js/window) "outer_y" top)
+  (aset (.-_m js/window) "outer_w" width)
+  (aset (.-_m js/window) "outer_h" height)
 
-
+  (for [id ["workspace" "canvas_clip"]]
+    (let [rule (if (= "workspace" id) 16 0)]
+    (do
+    (aset (.-style (.getElementById js/document id)) "left" (px (+ left rule) ))
+      (aset (.-style (.getElementById js/document id)) "width" (px (- width rule) ))
+      (aset (.-style (.getElementById js/document id)) "height" (px (- height rule) ))
+      (aset (.-style (.getElementById js/document id)) "top" (px (+ top rule)) )))))
 
 (defn idx-for [v coll]
   (keep-indexed #(if (= %2 v) %1 nil) coll))
-
 
 
 
@@ -115,22 +128,18 @@
 (sug/defcomp tool-shelf
   [data owner opts]
 
-  {:init-state
+  {:will-mount
    (fn [_]
-
-       (let [shelf (om/value data)
-             window (om/get-shared owner :window)
-             wh @(:height window)
-             h (- wh 24)
-             result (vec (map (fn [v] (* h v)) (:spacing shelf)))]
-                {:spacing result
-                 :stack (:stack shelf)}))
+     (let [state (om/get-state owner)
+           h (:height state)]
+     (om/set-state! owner :spacing (mapv #(* % h) (:spacing (:shelf state))))))
 
   :render-state
   (fn [_ state]
-      (let [stack (:stack data)
-            align (om/value (:align data))
-            style (if (:right state)
+      (let [shelf (:shelf state)
+            stack (:stack shelf)
+            align (:align shelf)
+            style (if (= :right align)
                     #js {:top (:top state) :right (px (:right state)) :width (px  (:width state))}
                     #js {:top (:top state) :left (px (:left state)) :width (px (:width state))})]
 
@@ -141,17 +150,22 @@
 ;;                 (om/set-state! owner :trigger-undock nil)
 ;;                 (undock-tool data owner opts e)))))
 
+
         (dom/div #js {:className "shelf" :ref "shelf" :style style}
                (apply dom/div nil
                  (for [idx (range 0 (count stack))
                         :let [tool (nth stack idx)
                               tool-height (nth (:spacing state) idx)]]
-                           (sug/make tools/toolbox tool {:state {:uid idx
-                                                                 :docked true
-                                                                 :height (px  tool-height)}})))
+
+                           (sug/make tools/toolbox data {:init-state {:idx idx
+                                                                      :view (:view tool)
+                                                                 :tabbed (:tabbed tool)
+                                                                 :docked true}
+                                                         :state {:idx idx
+                                                                 :height tool-height}})))
 
 
-                  (let [handle-style (if (:right state)
+                  (let [handle-style (if (= :right align)
                     #js {:right (px (:width state)) :top (px (:top state))}
                     #js {:left (px (:width state)) :top (px (:top state))})]
                  (sug/make draggable data {:opts {:className "handle"
@@ -162,10 +176,11 @@
         (fn [e]
           (let [state (om/get-state owner)
                 spacing (:spacing state)
-                uid (:uid e)
+                idx (:idx e)
                 diff (:diff-location e)
                 d-y (- (last diff))
-                slid (slide-in-stack uid spacing d-y)]
+                slid (slide-in-stack idx spacing d-y)]
+            (print idx)
             (om/set-state! owner :spacing slid)))}})
 
 
@@ -178,17 +193,18 @@
 
   {:render-state
     (fn [_ state]
-      (let []
+      (let [tools (:undocked (:interface  data))]
+
       (dom/div #js {:className "undocked"}
         (into-array
           (map (fn [tool]
-                 (let [[left top width height] (:xywh tool)]
-                 (sug/make tools/toolbox tool {:init-state {:uid -1
+                 (let [view (:view tool)
+                       [left top width height] (:xywh tool)]
+                 (sug/make tools/toolbox data {:key :uid :init-state {:view view
                                                             :docked false
+                                                            :tabbed (:tabbed tool)
                                                             :left left :top top
-                                                            :width width :height height} }))) (:stack data))))))})
-
-
+                                                            :width width :height height} }))) tools )))))})
 
 
 (sug/defcomp interface
@@ -198,34 +214,44 @@
 
       (let [window (om/get-shared owner :window)
             ww @(:width window)]
-        (om/transact! data :layout #(map * % [ww ww ww]))))
+        (om/set-state! owner :layout (map * (:layout (:interface data)) [ww ww ww]))))
   :will-update
-   (fn [_ _ next-state]
-     (let [old (:app-state (:root (om/get-render-state owner)))
-           new (:app-state (:root next-state))
-           diffs   (vec (filter (fn [k] (when  (not= (k old) (k new)) k)) (keys new)))]
-      (when-not (empty? diffs)
-        (do (prn diffs)
-
-        (sug/fire-down! owner diffs {:is true})) )))
-
-  :render-state
-    (fn [_ state]
-      (let [window (om/get-shared owner :window)
+   (fn [_ next-props next-state]
+     (let [state (om/get-state owner)
+           window (om/get-shared owner :window)
             ww @(:width window)
             wh @(:height window)
-            layout (:layout data)]
-      (om/set-state! owner :root (:_root opts))
+            layout (:layout state)]
+       (when (not=
+         (:selection (:app-state data))
+         (:selection (:app-state next-props)))
+         (final/update-selection next-props))
+       ))
+  :render
+    (fn [_]
+      (let [state (om/get-state owner)
+            window (om/get-shared owner :window)
+            ww @(:width window)
+            wh @(:height window)
+            layout (:layout state)]
+      (let
+        [left (+ 8 (first layout))
+         top 24
+         right (+ (nth layout 2) 8)
+         width (- ww (+ left right))
+         height (- wh top)]
+          (dorun (position-native left top width height )))
 
-      (aset (.-style (.getElementById js/document "workspace")) "left" (px (+ 8 (first layout)) ))
-      (aset (.-style (.getElementById js/document "workspace")) "width" (px (- (nth layout 1) 24) ))
-      (aset (.-style (.getElementById js/document "workspace")) "top" (px 24) )
 
       (dom/div nil
-        (sug/make menubar (:menubar data) {})
-        (sug/make tool-shelf (:left-shelf data) {:state {:width (first layout) :left 0 :top 24}} )
-        (sug/make tool-shelf (:right-shelf data) {:state {:width (last layout) :right 0 :top 24}} )
-        (sug/make undocked-tools (:undocked data) {})
+        (sug/make menubar (:menubar (:interface data)) {})
+        (sug/make tool-shelf data (conj {:init-state {:shelf (:left-shelf (:interface data))
+                                                :width (first layout) :height (- wh 24) :left 0 :top 24}}
+                                   {:state {:width (first layout)}}) )
+        (sug/make tool-shelf data {:init-state {:shelf (:right-shelf (:interface data))
+                                                :width (last layout) :height (- wh 24) :right 0 :top 24}
+                                   :state {:width (last layout)}} )
+        (sug/make undocked-tools data {})
 
                )))
 
@@ -233,19 +259,26 @@
        :drag-shelf:left (fn [e]
                          (let [newpos (:diff-location e)
                                xd (first newpos)]
-                         (om/transact! data :layout #(map + % [xd (- xd) 0]))))
+                         (om/set-state! owner :layout (map + (om/get-state owner :layout) [xd (- xd) 0]))))
         :drag-shelf:right (fn [e]
                          (let [newpos (:diff-location e)
                                xd (first newpos)]
-                         (om/transact! data :layout #(map + % [0 xd (- xd)]))))
-        :selection #()
-        :mode #()
-        :mouse-target #()
+                         (om/set-state! owner :layout (map + (om/get-state owner :layout) [0 xd (- xd)]))))
          }})
 
 (defn toggle [col v]
   (if (col v) (disj col v)
     (conj col v)))
+
+;(:app-state @DATA)
+
+(defn drill-uid-path [node path]
+  (let [next (first (filter #(= (:uid %) (first path)) (:children node)))]
+    (if next
+      (cond (= 1 (count path)) next
+            :else (drill-uid-path next (rest path)))
+      (:uid node))
+  ))
 
 
 (defn check-mousedown [e data owner]
@@ -255,31 +288,36 @@
 
 (defn check-mousemove [e data owner]
   (let [target (.-target e)
-        uid (.-uid target)]
-    (om/transact! data [:app-state :mouse-target] #(identity uid))))
+        uid (.-uid target)
+        uid-path (.-uid_path target)]
+
+    (when-not (= (:mouse-target (:app-state @data)) uid)
+
+      (swap! MOUSE-TARGET #(identity uid))
+      (aset target "target" true)
+      ;(om/transact! data [:app-state :mouse-target] #(identity uid))
+      ;(om/transact! data [:app-state :mouse-target-path] #(identity
+      ;                                                     (drill-uid-path (first (:dom (:app-state @data))) (rest uid-path))))
+      )
+  ))
 
 (sug/defcomp dom-app
   [data owner opts]
+
   {:will-mount
-    (fn [_]
+   (fn [_]
       (doto (domina/by-id "workspace")
             (events/listen EventType.MOUSEDOWN #(check-mousedown % data owner))
             (events/listen EventType.MOUSEMOVE #(check-mousemove % data owner))))
-   :will-update
-   (fn [_ _ next-state] )
+
    :render
     (fn [_]
+        (sug/make interface data {})
+      )})
 
-
-        (om/build interface (:interface data) {:opts {:_root data} :state {:a (rand)}})) ;:state {:_dirty (om/get-state owner :_dirty)}}))
-   :did-update
-   (fn [_ _ _ _]
-     )
-
-   })
 
 (def DATA (atom (merge-with conj INTERFACE {:app-state {
-                                                        :dom [(tokenize/make (domina/by-id "workspace"))]
+                                                        :dom [(tokenize/make (domina/by-id "workspace") [])]
                                                         :nodes @tokenize/NODES}})))
 
 (def SHARED (merge GLOBAL {:window {:width (atom (.-innerWidth js/window))
@@ -289,12 +327,32 @@
 
 
 
-(:nodes (:app-state @DATA))
+(:_m (:interface @DATA))
 
 (om/root
  DATA
  SHARED
  dom-app (.getElementById js/document "main"))
 
+(aset js/window "_m" #js {:window_w (.-innerWidth js/window)
+                          :window_h (.-innerHeight js/window)
+                          :scroll_x 0
+                          :scroll_y 0
+                          :outer_x 300
+                          :outer_y 24
+                          :outer_w 500
+                          :outer_h 800
+                          :iframe_w 0
+                          :iframe_h 0
+                          :ruler_w 16
+                          :doc_scroll 0
+                          :doc_w 0
+                          :doc_h 0
+                          })
+
+
+(js/$ (fn []
+  (.init (.-tracking (_t)))
+  (.animate (.-tracking (_t)))))
 
 

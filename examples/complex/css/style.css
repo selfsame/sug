@@ -22,6 +22,12 @@ top:0px;
 
 }
 
+#canvas_clip{
+position:absolute;
+overflow:hidden;
+pointer-events:none;}
+
+#effects_overlay{pointer-events:none; }
 
 .selection-box{
 position:fixed;

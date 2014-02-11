@@ -10,6 +10,8 @@
   (.getNextUniqueId (.getInstance IdGenerator)))
 
 
+(def MOUSE-TARGET (atom nil))
+
 (def CSS-INFO {:measured #{:width :height
                                     :left :top :right :bottom
                                    :min-height :min-width
@@ -25,24 +27,7 @@
                         :compact #{:left :top :right :bottom
                                    :min-height :min-width
                                    :max-height :max-width
-                                   :z-index}})
-
-(def GLOBAL
-  {})
-
-
-(def INTERFACE
-  {:app-state {:selection #{}
-               :mouse-target -1
-               :mode {:active "create"
-                      :options ["create" "edit"]}
-               :style-select {:active "selection"
-                              :options ["selection" "css rule"]}
-               :style-use-pseudo {:value true :text "pseudo selector:"}
-               :style-pseudo {:active "hover"
-                              :options ["hover" "link" "visited" "active" "focus"]}
-               :element-filter {:active "select-all"
-                      :options ["p" "div" "all"]}
+                                   :z-index}
                :css-rules [{:name :width :icon "img/style_icons/width.png"
                             :sub-title "min/max"
                             :subs [{:name :min-width} {:name :max-width}]}
@@ -66,7 +51,24 @@
                            {:name :clear :options ["none" "left" "right" "inherit"]
                             :icon "img/style_icons/clear.png"}
                            {:name :z-index}
-                           {:name :transform:rotate :icon "img/style_icons/rotate.png"}]}
+                           {:name :transform:rotate :icon "img/style_icons/rotate.png"}]})
+
+(def GLOBAL
+  {})
+
+
+(def INTERFACE
+  {:app-state {:selection #{}
+               :mouse-target -1
+               :mode {:active "create"
+                      :options ["create" "edit"]}
+               :style-select {:active "selection"
+                              :options ["selection" "css rule"]}
+               :style-use-pseudo {:value true :text "pseudo selector:"}
+               :style-pseudo {:active "hover"
+                              :options ["hover" "link" "visited" "active" "focus"]}
+               :element-filter {:active "select-all"
+                      :options ["p" "div" "all"]}}
 
    :interface {:menubar {:file [{:key :open-project
                                  :name "browse files"}
@@ -85,21 +87,38 @@
                          :fonts []
                          :help []}
 
-               :layout [.1 .8 .1]
+               :layout [.2 .65 .15]
+
+               :_m {:window_w (.-innerWidth js/window)
+                    :window_h (.-innerHeight js/window)
+                    :scroll_x 0
+                    :scroll_y 0
+                    :outer_x 300
+                    :outer_y 24
+                    :outer_w 500
+                    :outer_h 800
+                    :iframe_w 0
+                    :iframe_h 0
+                    :ruler_w 16
+                    :doc_scroll 0
+                    :doc_w 0
+                    :doc_h 0}
 
                :left-shelf {:align :left
-                            :spacing [.2 .5 .3]
-                            :stack [{:view :mode}
-                                    {:view :style :tabbed [:style :history]}
-                                    {:view :mode :tabbed [:mode :style :history :outliner]}]}
+                            :spacing [.3 .7]
+                            :stack [{:uid (guid) :view :mode}
+                                    {:uid (guid) :view :style :tabbed [:style :history]}]}
 
-               :document {}
 
                :right-shelf {:align :right
-                             :spacing [.5 .15 .15]
-                             :stack [{:view :outliner}
-                                    {:view :history}
-                                    {:view :mode}]}
+                             :spacing [.6 .15 .15]
+                             :stack [{:uid (guid) :view :outliner}
+                                     {:uid (guid) :view :history}
+                                    {:uid (guid) :view :mode }]}
 
-               :undocked {:stack [{:view :outliner :xywh [100 100 220 400] }]}}})
+               :undocked [
+                          {:uid (guid) :view :mode
+                           :xywh [400 200 220 300] }
+                        {:uid (guid) :view :style :tabbed [:style :history]}
+                          ]}})
 

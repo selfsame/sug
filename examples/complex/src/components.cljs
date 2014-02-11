@@ -25,7 +25,7 @@
   (om/transact! data :expanded not))
 
 (defn click-mode-option [data owner option]
-  ;(om/set-state! owner :active option)
+  (om/set-state! owner :active option)
   (om/transact! data [:active] #(identity option)))
 
 
@@ -57,7 +57,7 @@
    (fn [_] {:active (:active data)})
    :will-update
    (fn [_ next-props next-state]
-                 (om/set-state! owner :active (:active data)))
+                 )
    :render-state
    (fn [_ state]
       (let [amount (count (:options data))
@@ -83,8 +83,8 @@
    (fn [_ state]
             (let [tag (:tag data)
 
-                  targeted (= (:mouse-target (:app-state (:_root opts))) (:uid data))
-                  selected ((:selection (:app-state (:_root opts))) (:uid data))
+                  targeted (= (:mouse-target state) (:uid data))
+                  selected ((:selection state) (:uid data))
 
                   selected-class (str (when selected "selected ")
                                        (when targeted "targeted ") "")
@@ -99,51 +99,48 @@
                      (dom/span #js {:className (str "tag-name " tag)} tag)
                      (when (:id data) (dom/span #js {:className "id-name"} (:id data)))
 
-                   ;quick and dirty selection boxes
-                     (when (or selected targeted)
-                       (let [[left top width height] (map px (get-xywh (:node data)))]
-                         (dom/div #js {:className (str "selection-box " selected-class)
-                                     :style #js {:height height :width width
-                                             :top top :left left}} )))
 
-                     (when (children? data)
-                       (sug/make-all dom-node (:children data) {}) ))))
-   :on {:selection
-        (fn [e] (om/set-state! owner :__c (rand)) )
-        :mouse-target
-        (fn [e] (om/set-state! owner :__c (rand)) )}})
+
+                     (when (and (children? data) (expanded? data))
+                       (sug/make-all dom-node (:children data)  {:state {:selection (:selection state)}})
+                                                                 ; (conj {} (when (= (first (:mouse-target state)) (:uid data))
+                                                                  ;   {:state {:mouse-target (rest (:mouse-target state))}}))
+
+                                     ) )
+                   )) })
 
 
 
-(defn drag-start [e item owner]
+(defn drag-start [e data owner]
   (let [loc (location e)]
     (om/set-state! owner :dragging true)
     (om/set-state! owner :start-location loc)
     (om/set-state! owner :last-location loc)
-    (sug/fire! owner (or (om/get-state owner :drag-start) :drag-start) {:uid (om/get-state owner :uid)
-                                  :location loc
-                                  :start-location (om/get-state owner :start-location)
-                                  :diff-location (map - loc (om/get-state owner :last-location))})))
+    (sug/fire! owner (or (om/get-state owner :drag-start) :drag-start)
+               (conj {:location loc
+                      :start-location (om/get-state owner :start-location)
+                      :diff-location (map - loc (om/get-state owner :last-location))} (om/get-state owner :message)) )))
 
-(defn drag-stop [e item owner]
+(defn drag-stop [e data owner]
   (let [loc (location e)]
-    (sug/fire! owner (or (om/get-state owner :drag-stop) :drag-stop) {:uid (om/get-state owner :uid)
-                                 :location loc
-                                 :start-location (om/get-state owner :start-location)
-                                 :diff-location (map - loc (om/get-state owner :last-location))})
+    (sug/fire! owner (or (om/get-state owner :drag-stop) :drag-stop)
+               (conj {:location loc
+                      :start-location (om/get-state owner :start-location)
+                      :diff-location (map - loc (om/get-state owner :last-location))} (om/get-state owner :message)))
     (om/set-state! owner :last-location loc)
     (om/set-state! owner :dragging false)))
 
-(defn drag [e item owner]
+(defn drag [e data owner]
   (let [loc (location e)]
-    (sug/fire! owner (or (om/get-state owner :drag) :drag) {:uid (om/get-state owner :uid)
-                            :location loc
-                            :start-location (om/get-state owner :start-location)
-                            :diff-location (map - loc (om/get-state owner :last-location))})
+    (sug/fire! owner (or (om/get-state owner :drag) :drag)
+               (conj { :location loc
+                       :start-location (om/get-state owner :start-location)
+                       :diff-location (map - loc (om/get-state owner :last-location))} (om/get-state owner :message)) )
     (om/set-state! owner :last-location loc)))
 
 (sug/defcomp draggable
   [data owner opts]
+
   {:will-update
     (fn [_ next-props next-state]
       ;; begin dragging, need to track events on window
@@ -162,6 +159,7 @@
           (doto js/window
             (events/unlisten EventType.MOUSEUP mouse-up)
             (events/unlisten EventType.MOUSEMOVE mouse-move)))))
+
     :will-unmount
     (fn [_]
       (let [[mouse-up mouse-move]
@@ -169,20 +167,13 @@
           (doto js/window
             (events/unlisten EventType.MOUSEUP mouse-up)
             (events/unlisten EventType.MOUSEMOVE mouse-move))))
+
     :render-state
     (fn [_ state]
        (let [content (:content opts)
              class-name (or (:className opts) "")
-             style (or (:style opts)  #js {})
-             fire-listener (om/get-state owner :fire-listener)]
-
-         (when fire-listener
-           (do
-               (om/set-state! owner :dragging true)
-               (om/set-state! owner :start-location (:start-location fire-listener))
-               (om/set-state! owner :last-location (:last-location fire-listener))
-               (om/set-state! owner :fire-listener false)))
+             style (or (:style opts)  #js {})]
 
          (dom/div #js {:className class-name :style style
-                       :onMouseDown #(drag-start % @data owner)} content)))})
+                       :onMouseDown #(drag-start % data owner)} content)))})
 

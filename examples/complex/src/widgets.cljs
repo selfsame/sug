@@ -33,60 +33,58 @@
 
 (get {:a 5} :a)
 
-(sug/defcomp style-widget [data owner opts]
-  {:init-state
-   (fn [_]
-     (let [rule (:name (om/value data))]
-       {:name rule
-        :measured ((:measured CSS-INFO) rule)
-        :quad ((:quad CSS-INFO) rule)
-        :compact ((:compact CSS-INFO) rule)
-        :expanded false
-        :select-set (:options (om/value data))}))
-   :render-state
+(sug/defcomp style-widget
+  [data owner opts]
+
+   {:render-state
    (fn [_ state]
-     (let [rule-name (apply str (rest (str (:name state))))
+     (let [rule (:rule state)
+           rule-name (apply str (rest (str (:name rule))))
            inline-styles (:styles state)
-           inline ((:name state) inline-styles)
-           icon (:icon (om/value data))
-           sub-rules (:subs data)
+           inline ((:name rule) inline-styles)
+           icon (:icon rule)
+           measured ((:measured CSS-INFO) (:name rule))
+           quad ((:quad CSS-INFO) (:name rule))
+           compact ((:compact CSS-INFO) (:name rule))
+           select-set (:options rule)
+           sub-rules (:subs rule)
            root-classes (apply str "style-widget "
                                (when inline "used ")
                                (when icon "iconed ")
-                               (when (:measured state) "measured ")
-                               (when (:quad state) "quad ")
-                               (when (:compact state) "compact "))]
+                               (when measured "measured ")
+                               (when quad "quad ")
+                               (when compact "compact "))]
 
      (dom/div #js {:className root-classes}
        (dom/div #js {:className "title"}
          (dom/div #js {:className "left"}
-              (dom/p #js {:className "name"} rule-name ))
+              (dom/p #js {:className "name"} (str rule-name (rand-int 100)) ))
               (dom/div #js {:className "remove"} "."))
        (when icon
          (dom/img #js {:className "icon" :src icon}))
        (dom/div #js {:className "input-box"}
          (dom/div #js {:className "input-span"}
-           (if (:select-set state)
+           (if select-set
              (apply dom/select nil
-                (map #(dom/option #js {:value %} %) (:select-set state)))
+                (map #(dom/option #js {:value %} %) select-set))
              (dom/input #js {:value (or inline "none")})))
 
-         (when (:measured state)
+         (when measured
            (dom/div #js {:className "unit"}))
-         (when (:measured state)
+         (when measured
            (dom/div #js {:className "scrub"})))
 
         (when sub-rules
           (apply dom/div #js {:className (str (if (:expanded state)
                                                 (str "subsection " "expanded ")
                                                 "subsection ")
-                                              (when (:quad state) "quad "))}
+                                              (when quad "quad "))}
              (dom/p #js {:className "name"
                          :onClick #(om/set-state! owner :expanded (not (:expanded (om/get-state owner))))}
-                    (:sub-title (om/value data)))
-             (sug/make-all style-widget sub-rules {:opts opts})))
-
-              )))})
+                    (:sub-title rule))
+             (map (fn [rule]
+              (sug/make style-widget data {:state {:styles (:style state)
+                                                           :rule rule}})) sub-rules))))))})
 
 
 
