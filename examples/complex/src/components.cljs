@@ -136,7 +136,8 @@
                (conj { :location loc
                        :start-location (om/get-state owner :start-location)
                        :diff-location (map - loc (om/get-state owner :last-location))} (om/get-state owner :message)) )
-    (om/set-state! owner :last-location loc)))
+    ;(om/set-state! owner :last-location loc)
+    ))
 
 (sug/defcomp draggable
   [data owner opts]
@@ -149,24 +150,29 @@
               mouse-move #(drag % @next-props owner)]
           (om/set-state! owner :window-listeners
             [mouse-up mouse-move])
-          (doto js/window
-            (events/listen EventType.MOUSEUP mouse-up)
-            (events/listen EventType.MOUSEMOVE mouse-move))))
+
+
+          (.bind (js/$ js/window) "mouseup" mouse-up)
+          (.bind (js/$ js/window) "mousemove" mouse-move)
+          ))
       ;; end dragging, cleanup window event listeners
       (when (from? owner next-props next-state :dragging)
         (let [[mouse-up mouse-move]
               (om/get-state owner :window-listeners)]
-          (doto js/window
-            (events/unlisten EventType.MOUSEUP mouse-up)
-            (events/unlisten EventType.MOUSEMOVE mouse-move)))))
+
+          (.unbind (js/$ js/window) "mouseup" mouse-up)
+          (.unbind (js/$ js/window) "mousemove" mouse-move)
+
+          )))
 
     :will-unmount
     (fn [_]
       (let [[mouse-up mouse-move]
               (om/get-state owner :window-listeners)]
-          (doto js/window
-            (events/unlisten EventType.MOUSEUP mouse-up)
-            (events/unlisten EventType.MOUSEMOVE mouse-move))))
+
+          (.unbind (js/$ js/window) "mouseup" mouse-up)
+          (.unbind (js/$ js/window) "mousemove" mouse-move)
+        ))
 
     :render-state
     (fn [_ state]

@@ -491,9 +491,14 @@ top: -16px;
 border-top-color: #E2E2E2;
   }
 
-.style-widget.used ._fp_s_widget_simple_title{
- /*background-color: rgb(148, 198, 225);*/
+
+.style-widget.sheet input,
+.style-widget.sheet div.unit,
+.style-widget.sheet .select{
+   /*border-color: rgb(217, 238, 251) rgb(181, 181, 181) rgb(119, 135, 151) rgb(255, 255, 255);*/
+ background-color: #d9ad93;
 }
+
 
 
 

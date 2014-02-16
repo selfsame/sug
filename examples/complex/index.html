@@ -6,7 +6,8 @@
     <!--[if lt IE 9]>
     <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
-    <script type='text/javascript' id='lt_ws' src='http://localhost:58800/socket.io/lighttable/ws.js'></script>
+    <script type='text/javascript' id='lt_ws' src='http://localhost:64744/socket.io/lighttable/ws.js'></script>
+    <script src="js/libs/jquery-2.0.3.min.js" type="text/javascript"></script>
 
     <link rel="stylesheet" href="webfonts/sourcecodepro/stylesheet.css">
 <link rel="stylesheet" href="./css/style.css" type="text/css" media="all" />
@@ -14,7 +15,8 @@
 <link rel="stylesheet" href="./css/style-widgets.css" type="text/css" media="all" />
 <link rel="stylesheet" href="./css/outliner.css" type="text/css" media="all" />
 <link rel="stylesheet" href="./css/mode-box.css" type="text/css" media="all" />
-    <style></style>
+    <style>
+        #workspace li{width:500px;}</style>
 </head>
 
 <body>
@@ -26,41 +28,37 @@
 
 
 
-<div id="workspace" style="position:absolute;">
-    <h3 style="width:300px;border:1px solid black;">Hello, world</h3>
-    <p>asd</p>
-    <ul style="width: 200px;border:1px solid black;">
-        <li>one</li><li>two</li><li>three</li>
-    </ul></div>
+<div id="iframe_proxy" style="position:absolute;">
+    <div></div>
+</div>
     <div id="canvas_clip">
       <canvas id="effects_overlay"  width='1148' height='1024'/>
     </div>
 
     <div id="main"></div>
     <script>
-        window.doc_zoom = 1.0
+     $$ = function(element_string){
+         return $('#iframe_proxy iframe').contents().find(element_string);
+     };
 
      var _t = {}
      var _m = {scroll_x: 0, scroll_y: 0}
-    //var iframe = document.createElement("IFRAME");
-    //iframe.setAttribute("src", "./iframe.html");
-//     iframe.id = "iframe";
-//     iframe.style.position = "absolute"
-//     document.body.insertBefore(iframe, document.getElementById("main"));
-
-//     window.workspace = iframe.contentDocument || iframe.contentWindow.document;
-//     window.workspace.body.appendChild(document.createElement("BUTTON"))
-
 
     </script>
-    <script src="js/libs/jquery-2.0.3.min.js" type="text/javascript"></script>
+
+    <script src="js/libs/CSS_selector_parser.js"></script>
+  <script src="js/libs/CSS_value_parser.js"></script>
+
     <script src="js/init.js" type="text/javascript"></script>
     <script src="js/tracking.js" type="text/javascript"></script>
+    <script src="js/color_picker.js"></script>
+
     <script src="http://fb.me/react-0.8.0.js"></script>
     <script src="out/goog/base.js" type="text/javascript"></script>
     <script type="text/javascript" src="main.js"></script>
 	  <script type="text/javascript">goog.require("examples.complex.core");</script>
-</body>
+
+    </body>
 </html>
 
 

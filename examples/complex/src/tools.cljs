@@ -9,7 +9,8 @@
       )
   (:use
     [examples.complex.data :only [UID INITIAL CSS-INFO]]
-   [examples.complex.util :only [value-from-node clear-nodes! location clog px to? from? within? get-xywh element-dimensions element-offset get-xywh]]
+   [examples.complex.util :only [value-from-node clear-nodes! location clog px style!
+                                 to? from? within? get-xywh element-dimensions element-offset get-xywh]]
     [examples.complex.components :only [modal-box dom-node draggable bool-box]]))
 
 
@@ -26,12 +27,21 @@
            (sug/make modal-box (:element-filter app-state) {})
                   ) ))})
 
-(defn history [app owner opts]
-  (reify
-    om/IRender
-    (render [_]
+(sug/defcomp filtered-inline [data owner]
+  {:render-state
+   (fn [_ state]
        (let []
-            (dom/p #js {:style #js {}} ) ))))
+            (dom/p nil (prn-str (rand-int 100) data)) ))})
+
+(sug/defcomp history [data owner]
+  {:render-state
+   (fn [_ state]
+       (let []
+         (dom/div nil
+            (sug/make filtered-inline (:inline data) {})
+            (dom/p nil (prn-str (rand-int 100) (:nodes data)))) ))})
+
+
 
 (sug/defcomp outliner [data owner opts]
   {
@@ -46,34 +56,35 @@
 
 
 (sug/defcomp style [data owner opts]
-  {
-   :render-state
-   (fn [_ state]
+             {:render-state
+              (fn [_ state]
 
-       (let [app data
-             selected (:selection app)
-             nodes (:nodes app)
-             style-set (apply conj (map :style (vals (select-keys nodes selected))))
-             select (:style-select app)
-             pseudo (:style-use-pseudo app)
-             pseudo-opts (:style-pseudo app)
-             css-rules (:css-rules CSS-INFO)]
+                (let [app (om/value data)
+                      selected (:selection app)
+                      nodes (:nodes app)
+                      selected-nodes (vals (select-keys nodes selected))
 
-         (dom/div #js {:className (str "options" (when (= "create" (:active (:mode app))) " disabled"))}
-            (sug/make modal-box select {})
-            (sug/make bool-box pseudo {})
-            (sug/make modal-box pseudo-opts {:state {:disabled (not (:value pseudo))}})
-            (apply dom/div #js {:className "rules"}
+                      select (:style-select data)
+                      pseudo (:style-use-pseudo data)
+                      pseudo-opts (:style-pseudo data)
+                      css-rules (:css-rules CSS-INFO)]
 
-              (map (fn [rule]
-                (sug/make widgets/style-widget data {:state {:styles style-set
-                                                                        :rule rule}})) css-rules)
-                ))))})
+                  (dom/div #js {:className (str "options" (when (= "create" (:active (:mode data))) " disabled"))}
+                           (sug/make modal-box select {})
+                           (sug/make bool-box pseudo {})
+                           (sug/make modal-box pseudo-opts {:state {:disabled (not (:value pseudo))}})
+                           (apply dom/div #js {:className "rules"}
+
+                                  (map (fn [rule]
+                                         (sug/make widgets/style-widget (:selection data)
+                                                   {:init-state {:rule rule}
+                                                    :state {:selected-nodes selected-nodes}})) css-rules)
+                                  ))))})
 
 (defn tool-lookup [view data]
   (let [comps {:mode mode :history history :outliner outliner :style style}
         lenses {:mode (:app-state data)
-                :history data
+                :history (:filtered (:app-state data))
                 :outliner (:app-state data)
                 :style (:app-state data)}]
     [(view comps) (view lenses)]))
@@ -84,17 +95,7 @@
 
 
 (sug/defcomp toolbox [data owner opts]
-  {:should-update
-   (fn [_ next-props next-state]
-
-     (if (or
-      (or (nil? next-state)
-          (not= (om/get-state owner) next-state)
-          (not= (om/get-render-state owner) (om/get-state owner)))
-      (not= (om/get-props owner) next-props))
-     true
-     (prn "FALSE")))
-   :render-state
+  {:render-state
     (fn [_ state]
 
        (let [view (:view state)
@@ -107,9 +108,10 @@
 
          (dom/div #js {:className "tool" :ref "tool" :style style}
             (sug/make draggable data {:opts {:className (str "title " (when tabbed "tabbed "))
-                                            :content (str view (rand-int 100)) }
+                                            :content (str view)} ;(aget owner "_rootNodeID")) }
 
                                      :init-state {:message {:idx (:idx state)}
+                                                  :drag-start :remember
                                                   :drag (if (:docked state) :drag-docked :drag-free)}})
             (when tabbed
               (apply dom/div #js {:className "tabs"}
@@ -123,23 +125,31 @@
 
             (when-not (:docked state)
               (sug/make draggable data {:opts {:className "resize"}
-                                     :init-state {:drag :drag-resize}})))))
+                                     :init-state {:drag-start :remember
+                                                  :drag :drag-resize}})))))
 
 
-   :on {:drag-free
+   :on {:remember (fn [e]
+                    (let [el-off (element-offset (om/get-node owner "tool"))
+                          el-dim (element-dimensions (om/get-node owner "tool"))
+                          drag-start (:start-location e)]
+                    (om/set-state! owner :drag-start-offset
+                                   (mapv - drag-start el-off))
+                      (om/set-state! owner :drag-start-offset-dim
+                                   (mapv - drag-start el-dim))))
+        :drag-free
         (fn [e]
           (let [state (om/get-state owner)
-                [dx dy] (:diff-location e)]
-            (om/set-state! owner :left (+ dx (:left state)))
-            (om/set-state! owner :top (+ dy (:top state)))))
+                [x y] (mapv - (:location e) (state :drag-start-offset ))
+                node (om/get-node owner "tool")]
+            (style! node :left (px x))
+            (style! node :top (px y))))
 
         :drag-resize (fn [e]
                        (let [state (om/get-state owner)
-                             wh [(:width state) (:height state)]
-                             [nw nh] (map + wh (:diff-location e))]
-                         (om/set-state! owner :width nw)
-                         (om/set-state! owner :height nh)))
-
-        }})
+                             node (om/get-node owner "tool")
+                             [nw nh] (mapv - (:location e) (state :drag-start-offset-dim ))]
+                         (style! node :width (px nw))
+                         (style! node :height (px nh))))}})
 
 

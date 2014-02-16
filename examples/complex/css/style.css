@@ -8,8 +8,9 @@
 
 
 
-#data {
-position:absolute;
+#iframe_proxy > iframe {
+width:100%;
+  height:100%;
 
 }
 

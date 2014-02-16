@@ -12,7 +12,7 @@
    [goog.events :as events])
   (:use
 
-    [examples.complex.data :only [UID GLOBAL INTERFACE MOUSE-TARGET]]
+    [examples.complex.data :only [UID GLOBAL INTERFACE MOUSE-TARGET MESS]]
     [examples.complex.util :only [value-from-node clear-nodes! location clog px to? from? within?
                      get-xywh element-dimensions element-offset exclude]]
     [examples.complex.components :only [modal-box dom-node draggable]])
@@ -36,13 +36,14 @@
   (aset (.-_m js/window) "outer_w" width)
   (aset (.-_m js/window) "outer_h" height)
 
-  (for [id ["workspace" "canvas_clip"]]
-    (let [rule (if (= "workspace" id) 16 0)]
+  (for [id ["iframe_proxy" "canvas_clip"]]
+    (let [rule (if (= "iframe_proxy" id) 16 0)]
     (do
     (aset (.-style (.getElementById js/document id)) "left" (px (+ left rule) ))
       (aset (.-style (.getElementById js/document id)) "width" (px (- width rule) ))
       (aset (.-style (.getElementById js/document id)) "height" (px (- height rule) ))
       (aset (.-style (.getElementById js/document id)) "top" (px (+ top rule)) )))))
+
 
 (defn idx-for [v coll]
   (keep-indexed #(if (= %2 v) %1 nil) coll))
@@ -170,7 +171,8 @@
                     #js {:left (px (:width state)) :top (px (:top state))})]
                  (sug/make draggable data {:opts {:className "handle"
                                                    :style handle-style}
-                                            :state {:drag (keyword (str "drag-shelf" align))}})))))
+                                            :state {:drag-start :remember-shelf
+                                                    :drag (keyword (str "drag-shelf" align))}})))))
 
    :on {:drag-docked
         (fn [e]
@@ -217,14 +219,16 @@
         (om/set-state! owner :layout (map * (:layout (:interface data)) [ww ww ww]))))
   :will-update
    (fn [_ next-props next-state]
-     (let [state (om/get-state owner)
+     (let [state (om/get-render-state owner)
            window (om/get-shared owner :window)
             ww @(:width window)
             wh @(:height window)
             layout (:layout state)]
-       (when (not=
-         (:selection (:app-state data))
-         (:selection (:app-state next-props)))
+       (when (or
+              (not=
+               (:selection (:app-state data))
+               (:selection (:app-state next-props)))
+              (not= (:layout state) (:layout next-state)))
          (final/update-selection next-props))
        ))
   :render
@@ -256,21 +260,29 @@
                )))
 
    :on {
+        :remember-shelf (fn [e]
+                          (om/set-state! owner :layout-remember (om/get-state owner :layout) ))
        :drag-shelf:left (fn [e]
-                         (let [newpos (:diff-location e)
-                               xd (first newpos)]
-                         (om/set-state! owner :layout (map + (om/get-state owner :layout) [xd (- xd) 0]))))
+                         (let [startpos (:start-location e)
+                               newpos (:location e)
+                               diffpos (map - newpos startpos)
+                               remember (om/get-state owner :layout-remember)
+                               xd (first diffpos)]
+                         (om/set-state! owner :layout (map + (om/get-state owner :layout-remember) [xd (- xd) 0]))))
         :drag-shelf:right (fn [e]
-                         (let [newpos (:diff-location e)
-                               xd (first newpos)]
-                         (om/set-state! owner :layout (map + (om/get-state owner :layout) [0 xd (- xd)]))))
+                         (let [startpos (:start-location e)
+                               newpos (:location e)
+                               diffpos (map - newpos startpos)
+                               remember (om/get-state owner :layout-remember)
+                               xd (first diffpos)]
+                         (om/set-state! owner :layout (map + (om/get-state owner :layout-remember) [0 xd (- xd)]))))
          }})
 
 (defn toggle [col v]
   (if (col v) (disj col v)
     (conj col v)))
 
-;(:app-state @DATA)
+
 
 (defn drill-uid-path [node path]
   (let [next (first (filter #(= (:uid %) (first path)) (:children node)))]
@@ -301,23 +313,35 @@
       )
   ))
 
+(vals {})
+
+(defn filter-data [data]
+  "filters data depending on the current selection"
+  (let [app (:app-state data)
+        nodes (:nodes app)
+        selection (:selection app)
+        filtered (select-keys nodes selection)
+        inline (or (apply merge (map :inline (vals filtered) )) {})]
+    (update-in data [:app-state :filtered]
+          (fn [x] {:inline inline
+                   :nodes (or (vals filtered) [])}))))
+
 (sug/defcomp dom-app
   [data owner opts]
 
   {:will-mount
    (fn [_]
-      (doto (domina/by-id "workspace")
+      (doto (first (.toArray (js/$$ "body")))
             (events/listen EventType.MOUSEDOWN #(check-mousedown % data owner))
             (events/listen EventType.MOUSEMOVE #(check-mousemove % data owner))))
 
    :render
     (fn [_]
-        (sug/make interface data {})
-      )})
+        (sug/make interface data {:fn filter-data}))})
 
 
 (def DATA (atom (merge-with conj INTERFACE {:app-state {
-                                                        :dom [(tokenize/make (domina/by-id "workspace") [])]
+                                                        :dom [(tokenize/make (first (.toArray (js/$$ "body"))) [])]
                                                         :nodes @tokenize/NODES}})))
 
 (def SHARED (merge GLOBAL {:window {:width (atom (.-innerWidth js/window))
@@ -326,32 +350,32 @@
 
 
 
-
-(:_m (:interface @DATA))
-
-(om/root
- DATA
- SHARED
- dom-app (.getElementById js/document "main"))
-
-(aset js/window "_m" #js {:window_w (.-innerWidth js/window)
-                          :window_h (.-innerHeight js/window)
-                          :scroll_x 0
-                          :scroll_y 0
-                          :outer_x 300
-                          :outer_y 24
-                          :outer_w 500
-                          :outer_h 800
-                          :iframe_w 0
-                          :iframe_h 0
-                          :ruler_w 16
-                          :doc_scroll 0
-                          :doc_w 0
-                          :doc_h 0
-                          })
-
-
 (js/$ (fn []
+
+
+  (om/root
+   DATA
+   SHARED
+   dom-app (.getElementById js/document "main"))
+
+  (aset js/window "_m" #js {:window_w (.-innerWidth js/window)
+                            :window_h (.-innerHeight js/window)
+                            :scroll_x 0
+                            :scroll_y 0
+                            :outer_x 300
+                            :outer_y 24
+                            :outer_w 500
+                            :outer_h 800
+                            :iframe_w 0
+                            :iframe_h 0
+                            :ruler_w 16
+                            :doc_scroll 0
+                            :doc_w 0
+                            :doc_h 0
+                            })
+
+
+
   (.init (.-tracking (_t)))
   (.animate (.-tracking (_t)))))
 

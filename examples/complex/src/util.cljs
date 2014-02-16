@@ -29,6 +29,8 @@
         wh (element-dimensions el)]
     (concat xy wh)))
 
+(defn style! [node k v]
+  (aset (.-style node) (apply str (rest (str k))) v))
 
 
 (defn within? [xywh xy]

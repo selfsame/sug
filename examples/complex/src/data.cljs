@@ -10,6 +10,31 @@
   (.getNextUniqueId (.getInstance IdGenerator)))
 
 
+(defn rands [n] (take n (repeatedly
+          #(keyword (str (uid))))))
+
+(defn parts [V] (mapv #(apply conj %)  (partition-by #(= (rand-int 3) 1)
+                                                             (shuffle V))))
+
+
+
+
+
+
+(defn ITER [V]
+  (let [P (parts V)
+        C (count P)
+      S (rands C)]
+  (map (fn [s p] {s p}) S P)))
+
+(ITER (map (fn [n] {n {}}) (rands 100)) )
+
+;(def MESS (ITER (ITER (ITER (ITER (ITER (ITER (map (fn [n] {n {}}) (rands 1000)) )))))))
+
+
+
+
+
 (def MOUSE-TARGET (atom nil))
 
 (def CSS-INFO {:measured #{:width :height
@@ -59,8 +84,9 @@
 
 (def INTERFACE
   {:app-state {:selection #{}
+               :filtered {:inline {} :nodes {}}
                :mouse-target -1
-               :mode {:active "create"
+               :mode {:active "edit"
                       :options ["create" "edit"]}
                :style-select {:active "selection"
                               :options ["selection" "css rule"]}
@@ -117,8 +143,8 @@
                                     {:uid (guid) :view :mode }]}
 
                :undocked [
-                          {:uid (guid) :view :mode
-                           :xywh [400 200 220 300] }
-                        {:uid (guid) :view :style :tabbed [:style :history]}
+                          {:uid (guid) :view :history
+                           :xywh [400 200 320 500] }
+
                           ]}})
 

@@ -1,5 +1,7 @@
+window.tools = {}
 
-$(window).ready($("#workspace").html(window.localStorage.getItem("demo.html")))
+
+#$(window).ready($("#workspace").html(window.localStorage.getItem("demo.html")))
 
 window.requestAnimFrame = ((callback) ->
     window.requestAnimationFrame or window.webkitRequestAnimationFrame or window.mozRequestAnimationFrame or window.oRequestAnimationFrame or window.msRequestAnimationFrame or (callback) ->
@@ -16,3 +18,25 @@ Array::get_last = ()->
 
 Array::set_last = (value)->
   return this[this.length-1] = value
+
+
+
+ifrm = document.createElement("IFRAME")
+ifrm.setAttribute("src", "./iframe.html")
+$('#iframe_proxy').append $(ifrm)
+window.ifrm = ifrm
+
+window.doc_zoom = 1.0
+
+$(ifrm).ready ->
+	$('#iframe_proxy iframe').contents().on 'mousedown mouseup mousemove keydown keyup keypress', (e)->
+	    #console.log e.type
+	    #if window.prevent_iframe_doc_mouse_event_sync is 1
+	    #  window.prevent_iframe_doc_mouse_event_sync = 0
+	    #  return
+	    #$('#debug').find('.imm').html e.clientX
+	    e.origin = "iframe"
+	    e.clientX += _m.outer_x + _m.ruler_w
+	    e.clientY += _m.outer_y + _m.ruler_w
+
+	    $(window).trigger e

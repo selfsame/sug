@@ -3,6 +3,28 @@
   (:use [examples.complex.util :only [value-from-node clear-nodes! location clog px to? from? within?
                      get-xywh element-dimensions element-offset exclude]]))
 
+(enable-console-print!)
+
+
+(defn parse-css-for [parser s]
+  (let [sm
+  (first (js->clj
+   (try (.parse parser s) (catch js/Object e))
+   ))]
+    (apply conj (map (fn [[k v]] {(keyword k) v}) sm))))
+
+(defn css-value [s]
+  (parse-css-for (.-CSS_value_parser js/window) s))
+
+(defn css-selector [s]
+  (parse-css-for (.-CSS_selector_parser js/window) s))
+
+(defn get-style [el st]
+  (aget (.-style el) st))
+
+
+(css-value "..")
+(css-selector "margin-right")
 
 (defn box? [{:keys [x y w h b r] :as value}]
   (if (or (and x y)  (and w h) (and b r)) true false))
@@ -64,7 +86,7 @@
   (.draw_box (.-tracking (_t)) x y w h #js {:lineWidth 1
                                             :fillStyle "rgba(113, 183, 248, .3)";"transparent"
                                             :strokeStyle (or color "rgb(113, 183, 248)")}))
-(js->clj (.-_m js/window))
+
 
 (defn update-selection [data]
   (let [app (:app-state data)
@@ -73,7 +95,7 @@
         nodes (:nodes app)
         elements  (mapv :el (vals (select-keys nodes selection)))
 
-        off [(- (get _m "outer_x")) (- (get _m "outer_y"))]
+        off [16 16];[(- (get _m "outer_x")) (- (get _m "outer_y"))]
         boxes (mapv
                (fn [el]
                  (let[[x y] (element-offset el)
@@ -87,32 +109,13 @@
                :let [{:keys [x y w h]} (offset b off)]]
     (box x y w h nil)))
 
-    (prn bounds)
+    (clog (clj->js elements))
     (let [{:keys [x y b r w h]} (offset bounds off)] (box x y w h "red")
     (aset (_t) "select" (clj->js  {:selected_elements  elements :selection_box [(mapv - [x y] [16 16])
                                                                                 (mapv - [r b] [16 16])]})))
-   ;(.update_selections (.-tracking (_t)) )
+
     ))
 
 
-(def b
-{:x 70
- :y 10
- :w 50
- :h 60})
 
-
-
-(def c
-{:x 30
- :y 20
- :w 70
- :h 30})
-
-
-(def el (.getElementById js/document "main"))
-
-
-
-(element-offset el)
 
