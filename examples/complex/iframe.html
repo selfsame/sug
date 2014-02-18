@@ -48,6 +48,75 @@
         overflow:hidden;
        }
 
+#stash .left, #stash .right {
+    border-width:58px 0px 1px;
+    border-style:solid;
+    border-color:black;
+    width:250px;
+    height:126px;
+    background-color:rgba(0, 0, 0, 0);
+    position:absolute;
+    margin-top:44px;
+    margin-right:76px;
+    margin-left:78px;
+    opacity:0.6720430107526881;
+}
+body > .left, body > .right {
+    border:6px solid black;
+    border-bottom-left-radius:100px;
+    background-color:rgb(255, 255, 255);
+    position:absolute;
+    width:108px;
+    height:103px;
+    border-top-left-radius:100px;
+    border-top-right-radius:100px;
+    border-bottom-right-radius:100px;
+}
+#body {
+    position:absolute;
+    border:0px solid black;
+    width:332px;
+    height:599px;
+    top:25px;
+    left:267px;
+    background-color:rgb(249, 190, 141);
+    border-top-left-radius:200px;
+    border-top-right-radius:200px;
+    border-bottom-right-radius:200px;
+    border-bottom-left-radius:200px;
+}
+#stash {
+    position:absolute;
+    border:0px solid black;
+    width:657px;
+    height:297px;
+    top:124px;
+    left:96px;
+    overflow:hidden;
+}
+#stash .right {
+    top:76px;
+    left:269px;
+    border-top-left-radius:0px;
+    border-top-right-radius:254px;
+    border-bottom-right-radius:0px;
+    border-bottom-left-radius:0px;
+}
+#stash .left {
+    top:75px;
+    left:-5px;
+    border-top-left-radius:254px;
+}
+body > .left {
+    top:100px;
+    left:294px;
+}
+body > .right {
+    top:98px;
+    left:452px;
+}
+
+
 
   </style>
   <style id="_fp_wireframe"></style>
@@ -56,11 +125,23 @@
 </head>
 <body>
     <div id="test" style="width:180px;left:50px;top:100px;position:absolute;">
-    <h1>this is the iframe</h1>
-    <p>stuff</p>
+        <h1>this is the iframe</h1>
+        <p>stuff</p>
     </div>
     <div id="centered" style="width:480px;margin:40px auto; border:1px solid silver;">
-    <h1>this is centered</h1>
+        <h1>this is centered</h1>
     </div>
+
+
+    <div class="" id="body"></div>
+    <div class="" id="stash">
+        <div class="left"></div>
+        <div class="right"></div>
+    </div>
+    <div class="eye left"></div>
+    <div class="eye right"></div>
+
+
+    <div style="background-color: silver; height:900px;width:300px;margin:40px;"></div>
 </body>
 </html>

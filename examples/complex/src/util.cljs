@@ -22,7 +22,10 @@
     [(.-x offset) (.-y offset)]))
 
 (defn element-dimensions [el]
-    [(.-clientWidth el) (.-clientHeight el)])
+    [(.-offsetWidth el) (.-offsetHeight el)])
+
+(defn jq-dimensions [el]
+  [(.width (js/$ el)) (.height (js/$ el))])
 
 (defn get-xywh [el]
   (let [xy (element-offset el)
@@ -70,6 +73,33 @@
    (subvec col 0 idx)
    (when (<= (inc idx) (count col))
    (subvec col (inc idx) (count col))) )))
+
+(defn toggle [col v]
+  (if (col v) (disj col v)
+    (conj col v)))
+
+
+
+
+(def script "[3x 4y 10w 10h] [6i] [7x 8y]")
+
+(defn split-value [s]
+  (let [sp (re-seq  #"(\d+)(\w+)" s)
+        [vs ks] (rest (first  sp))]
+    {(keyword ks) (int vs)}))
+
+(split-value "5x")
+
+(defn get-values [s]
+  (re-seq  #"\d+\w+" s))
+
+(defn get-vects [s]
+  (re-seq  #"[\[][^\]]*[\]]" s))
+
+
+(map (fn [v] (into {}
+                   (map split-value (get-values v)))) (get-vects script))
+
 
 
 

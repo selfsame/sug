@@ -79,6 +79,17 @@
                  [(mapv min flb lb) (mapv max fub ub)]
                  )) col))
 
+
+(defn calc-iframe-dim []
+  (let [body (js/workspace "body")
+        w (.-scrollWidth body)
+        h (.-scrollHeight body)]
+    [w h]))
+
+
+
+
+
 (defn _t []
   (aget js/window "_t"))
 
@@ -88,33 +99,48 @@
                                             :strokeStyle (or color "rgb(113, 183, 248)")}))
 
 
+(defn redraw-canvas []
+  (.clear_and_redraw  (.-tracking (_t))))
+
+(defn clear-canvas []
+  (.clear_canvas  (.-tracking (_t))))
+
+(defn clear-except-rulers []
+  (.clear_except_rulers  (.-tracking (_t))))
+
+(defn draw-tracking []
+  (.draw_things  (.-tracking (_t))))
+
+(defn draw-rulers []
+  (.draw_rulers  (.-tracking (_t))))
+
 (defn update-selection [data]
-  (let [app (:app-state data)
+  (let [app data
         _m (js->clj (.-_m js/window))
         selection (vec (:selection app))
         nodes (:nodes app)
         elements  (mapv :el (vals (select-keys nodes selection)))
-
-        off [16 16];[(- (get _m "outer_x")) (- (get _m "outer_y"))]
+        scroll [(get _m "scroll_x") (get _m "scroll_y")]
+        off  (mapv - [16 16] scroll)
         boxes (mapv
                (fn [el]
                  (let[[x y] (element-offset el)
                   [w h] (element-dimensions el)]
                    (get-box [x y w h]))) elements)
         bounds (bounds boxes)]
-  (.clear_canvas  (.-tracking (_t)))
+
+  (clear-except-rulers)
 
 
   (dorun (for [b boxes
                :let [{:keys [x y w h]} (offset b off)]]
     (box x y w h nil)))
 
-    (clog (clj->js elements))
     (let [{:keys [x y b r w h]} (offset bounds off)] (box x y w h "red")
-    (aset (_t) "select" (clj->js  {:selected_elements  elements :selection_box [(mapv - [x y] [16 16])
-                                                                                (mapv - [r b] [16 16])]})))
+    (aset (_t) "select" (clj->js  {:selected_elements  elements :selection_box [(mapv - [x y] off)
+                                                                                (mapv - [r b] off)]})))
 
-    ))
+    (draw-tracking)))
 
 
 

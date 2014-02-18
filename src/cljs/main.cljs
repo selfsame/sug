@@ -7,6 +7,28 @@
       [om.dom :as dom :include-macros true]
       [cljs.core.async :as async :refer [>! <! <!! put! chan pipe pub sub close!]]))
 
+(def PRIVATE (atom {}))
+
+(defn owner-key [owner]
+  (let [path (.-path (.-__om_cursor (.-props owner)))
+        k (or (.-key (.-props owner)) "?")]
+    (apply str (conj path k))))
+
+(defn private! [owner korks f]
+  (let [func (if (= (type #()) (type f)) f (fn [v] f))
+        kcol (if (sequential? korks) korks [korks])
+        okey (owner-key owner)]
+    (swap! PRIVATE update-in (cons okey kcol) func )))
+
+(defn private
+  ([owner]
+   (private owner []))
+  ([owner korks]
+  (let [kcol (if (sequential? korks) korks [korks])
+        okey (owner-key owner)]
+    (get-in @PRIVATE (cons okey kcol)))))
+
+
 (defn state
   ([owner]
     (om/get-state owner))

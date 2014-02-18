@@ -400,6 +400,10 @@ $(window).ready ->
     clear_canvas: ()->
       @context.clearRect(0, 0, @w, @h)
 
+    clear_except_rulers: ()->
+      @context.clearRect(16, 16, @w, @h)
+  
+
     get_elements_inside_box: ()->
       set = []
       set_changed = 0
@@ -433,8 +437,20 @@ $(window).ready ->
         $(window).trigger('selectionchange')
       _t.select.refresh_selection_handles()
 
+    clip_area: (x=0, y=0, w=@w, h=@h)->
+      @context.save()
+      @context.beginPath()
+      @context.moveTo(x,y)
+      @context.lineTo(x+w, y)
+      @context.lineTo(x+w, y+h)
+      @context.lineTo(x, y+h)
+      @context.lineTo(x, y)
+      @context.closePath()
+      @context.clip()
+
+
     draw_things: ()->
-      
+      @clip_area(16, 16)
         
       #window.update_document_dimensions()
       z = window.doc_zoom
@@ -488,8 +504,8 @@ $(window).ready ->
       @draw_arrange()
 
       #clear selection draws from the ruler area
-      @context.clearRect(0,0,16,_m.outer_h)
-      @context.clearRect(0,0,_m.outer_w,16)
+      #@context.clearRect(0,0,16,_m.outer_h)
+      #@context.clearRect(0,0,_m.outer_w,16)
 
       if _t.select
         if _t.select.selected_elements.length > 0
@@ -498,10 +514,10 @@ $(window).ready ->
 
           options.strokeStyle = 'rgb(113, 183, 248)'
           options.lineWidth = 1
-          @draw_line sa[0][0], sa[0][1],  sa[0][0], -(16/z), options
-          @draw_line sa[1][0], sa[0][1],  sa[1][0], -(16/z), options
-          @draw_line sa[0][0], sa[0][1],  -(16/z), sa[0][1], options
-          @draw_line sa[0][0], sa[1][1],  -(16/z), sa[1][1], options
+          @draw_line sa[0][0], sa[0][1],  sa[0][0], 0, options
+          @draw_line sa[1][0], sa[0][1],  sa[1][0], 0, options
+          @draw_line sa[0][0], sa[0][1],  0, sa[0][1], options
+          @draw_line sa[0][0], sa[1][1],  0, sa[1][1], options
 
           options.strokeStyle = 'rgb(113, 183, 248)'
           options.fillStyle = 'rgb(113, 183, 248)'
@@ -540,7 +556,7 @@ $(window).ready ->
           @draw_box( sbox[1][0]-oo, sbox[0][1]+hh-oo, w, w, options )
 
       #if not _t.rulers.hidden
-      @draw_rulers()
+      #@draw_rulers()
         
       options = null
 
@@ -597,7 +613,17 @@ $(window).ready ->
         
 
     draw_rulers: ()->
+      @context.restore()
       #draw rulers
+      options =
+          fillStyle: 'white'
+          strokeStyle: 'gray'
+          lineWidth: 1
+          rulerw: 0
+          scale:false
+      @draw_line(15, 15, @w, 15, options)
+      @draw_line(15, 15, 15, @h, options)
+
       for run in [0,1]
         options =
           fillStyle: 'white'
@@ -605,13 +631,15 @@ $(window).ready ->
           lineWidth: 1
           rulerw: 16
 
+        
+
         z = window.doc_zoom
         if run is 0
-          view = _m.outer_w
+          view = window.outerWidth #_m.outer_w
           scroll = _m.scroll_x
           doc_d = _m.doc_w
         else
-          view = _m.outer_h
+          view = window.outerHeight #_m.outer_h
           scroll = _m.scroll_y
           doc_d = _m.doc_h
 
@@ -804,7 +832,7 @@ $(window).ready ->
 
     animate: ->
       window.requestAnimFrame _t.tracking.animate
-      #_t.tracking.clear_canvas()
+      _t.tracking.clear_canvas()
       _t.tracking.draw_things()
 
       

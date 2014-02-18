@@ -7,6 +7,7 @@
       [examples.complex.final :as final]
    [cljs.core.async :as async :refer [>! <! put! chan]])
   (:use
+   [examples.complex.tokenize :only [tokenize-style]]
    [examples.complex.components :only [modal-box dom-node draggable bool-box]]
    [examples.complex.data :only [UID INITIAL CSS-INFO]]
    [examples.complex.util :only [value-from-node clear-nodes! location
@@ -22,28 +23,33 @@
   (let [state (om/get-state owner)
         node (om/get-node owner "input")
         value (int (.-value node))
-        rule (:rule state)
-        rstring (kstring (:name rule))
-        selected-nodes (mapv :el (:selected-nodes state))]
-    (dorun (map (fn [n]
-                  (aset (.-style n) rstring (px value) )) selected-nodes))))
+        rstring (kstring (:name (:rule state)))]
+    (sug/fire! owner :style-change {:rule rstring :value value})
+    (sug/fire! owner :style-set-done {})))
+
+
+
 
 (sug/defcomp style-widget
   [data owner opts]
 
-   {:render-state
+   {:will-update
+   (fn [_ _ next-state]
+     (let []))
+    :render-state
    (fn [_ state]
      (let [rule (:rule state)
            rule-name (kstring (:name rule))
-           selected-nodes (:selected-nodes state)
 
-           inline-styles (apply conj (map :inline selected-nodes))
-           sheet (apply conj (map :cssMap selected-nodes))
+           app (om/value data)
+           nodes (:nodes app)
+           selection (:selection app)
+           filtered (conj {} (select-keys nodes selection ))
+           inline-styles (or (apply merge (map :inline (vals filtered) )) {})
 
            inline ((:name rule) inline-styles)
-           sheet ((:name rule) (:sheet state))
-           parsed (or (final/css-value inline)
-                      (final/css-value sheet) "")
+
+           parsed (or (final/css-value inline) {})
            value (:value parsed)
            unit (:unit parsed)
            icon (:icon rule)
@@ -54,13 +60,13 @@
            sub-rules (:subs rule)
            root-classes (apply str "style-widget "
 
-                               (cond inline "used "
-                                     sheet "sheet ")
+                               (cond inline "used ")
 
                                (when icon "iconed ")
                                (when measured "measured ")
                                (when quad "quad ")
                                (when compact "compact "))]
+
 
      (dom/div #js {:className root-classes}
        (dom/div #js {:className "title"}
@@ -79,16 +85,18 @@
                              :value (or value "")
                              :onChange #(handle-change % data owner)
                              :onKeyPress #(when (== (.-keyCode %) 13)
-                                            (end-edit % data owner))
+                                            (end-edit % @data owner))
                              :onBlur (fn [e]
-                                       (end-edit e data owner))} )))
+                                       ;(end-edit e @data owner)
+                                       )} )))
 
          (when measured
            (dom/div #js {:className "unit"} (or unit "")))
          (when measured
            (sug/make draggable data {:opts {:className "scrub"}
                                      :init-state {:drag-start :scrub-start
-                                                  :drag :scrub}})))
+                                                  :drag :scrub
+                                                  :drag-stop :style-set-done}})))
 
         (when sub-rules
           (apply dom/div #js {:className (str (if (:expanded state)
@@ -101,19 +109,18 @@
              (map (fn [rule]
               (sug/make style-widget data {:state {:styles (:style state)
                                                            :rule rule}})) sub-rules))))))
-    :on {:scrub-start (fn [])
+    :on {:scrub-start (fn [e]
+                        (sug/private! owner :scrubbing true))
+
          :scrub (fn [e]
                   (let [dx (* (first (:diff-location e)) .5)
                         state (om/get-state owner)
                         node (om/get-node owner "input")
                         value (int (.-value node))
-                        rule (:rule state)
-                        rstring (kstring (:name rule))
-                        selected-nodes (mapv :el (:selected-nodes state))]
-                    (dorun (map (fn [n]
-                      (aset (.-style n) rstring (px (+ value dx)) )) selected-nodes))))
-
-         }})
+                        new-value (+ value dx)
+                        rstring (kstring (:name (:rule state)))]
+                    (aset node "value" new-value)
+                    (sug/fire! owner :style-change {:rule rstring :value (+ value dx)}) ))}})
 
 
 

@@ -1,5 +1,4 @@
-(ns examples.complex.data
-  (:import [goog.ui IdGenerator]))
+(ns examples.complex.data)
 
 (def UID (atom 0))
 
@@ -7,7 +6,7 @@
   (swap! UID inc))
 
 (defn guid []
-  (.getNextUniqueId (.getInstance IdGenerator)))
+  (uid))
 
 
 (defn rands [n] (take n (repeatedly
@@ -83,8 +82,7 @@
 
 
 (def INTERFACE
-  {:app-state {:selection #{}
-               :filtered {:inline {} :nodes {}}
+  {:wrapper {:app-state {:selection #{}
                :mouse-target -1
                :mode {:active "edit"
                       :options ["create" "edit"]}
@@ -94,7 +92,14 @@
                :style-pseudo {:active "hover"
                               :options ["hover" "link" "visited" "active" "focus"]}
                :element-filter {:active "select-all"
-                      :options ["p" "div" "all"]}}
+                      :options ["p" "div" "all"]}
+
+               :node-filters {:expanded {:value true :text "expanded"}
+                              :children {:value false :text "has children"}
+                              :selected {:value false :text "selected"}
+                              :styled {:value false :text "styled"}}
+
+                         }}
 
    :interface {:menubar {:file [{:key :open-project
                                  :name "browse files"}
@@ -117,8 +122,8 @@
 
                :_m {:window_w (.-innerWidth js/window)
                     :window_h (.-innerHeight js/window)
-                    :scroll_x 0
                     :scroll_y 0
+                    :scroll_x 0
                     :outer_x 300
                     :outer_y 24
                     :outer_w 500
@@ -132,19 +137,25 @@
 
                :left-shelf {:align :left
                             :spacing [.3 .7]
-                            :stack [{:uid (guid) :view :mode}
-                                    {:uid (guid) :view :style :tabbed [:style :history]}]}
+                            :stack [
+                                    {:uid (guid) :view :mode}
+                                    {:uid (guid) :view :style :tabbed [:style :history]}
+                                    ]}
 
 
                :right-shelf {:align :right
-                             :spacing [.6 .15 .15]
+                             :spacing [.6 .25 .15]
                              :stack [{:uid (guid) :view :outliner}
-                                     {:uid (guid) :view :history}
-                                    {:uid (guid) :view :mode }]}
+                                     {:uid (guid) :view :mini-map :tabbed [:mini-map :outliner]}
+                                     {:uid (guid) :view :mode }]}
 
                :undocked [
-                          {:uid (guid) :view :history
-                           :xywh [400 200 320 500] }
+                          {:uid (guid) :view :style :tabbed [:style :outliner :word-processor]
+                           :xywh [700 100 280 400] }
+                          {:uid (guid) :view :word-processor :tabbed [:word-processor :outliner :mode]
+                           :xywh [300 300 600 360] }
 
                           ]}})
+
+
 

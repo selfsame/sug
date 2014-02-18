@@ -142,7 +142,7 @@ background: linear-gradient(to bottom, #DBDBDB 0%,#BABABA 100%);}
 
 
 
-.label{
+.tabs .label{
   margin: 0px;
   text-align:center;
   cursor:pointer;
@@ -157,7 +157,7 @@ background: linear-gradient(to bottom, #DBDBDB 0%,#BABABA 100%);}
   -webkit-box-sizing: border-box;
 
 }
-.label:before{
+.tabs .label:before{
   content: '';
   position:absolute;
   left:-10px;
@@ -176,24 +176,24 @@ background: linear-gradient(to bottom, #DBDBDB 0%,#BABABA 100%);}
 
 
   }
-.label.active{
+.tabs .label.active{
   color: black;
 
 }
 
-.label.active:before{
+.tabs .label.active:before{
   border-image-source: url(../img/style_tab_active.png);
   -moz-border-image-source: url('../img/style_tab_active.png');
 }
 
-.label:hover:before{
+.tabs .label:hover:before{
   border-image-source: url('../img/style_tab_hover.png');
  -moz-border-image-source: url('../img/style_tab_hover.png');
 
 }
 
 
-.label p{
+.tabs .label p{
   position:absolute;
   left:5px;
   right:5px;

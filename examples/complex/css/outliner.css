@@ -1,3 +1,58 @@
+#outliner_view{
+background-color:white;}
+
+.outliner_background.targeted{
+background-color: silver;}
+
+.outliner_background.selected{
+background-color: #D5ECFF;}
+
+.select-all .div, .select-all .h1,
+.select-all .p{
+color :red !important;}
+
+.select-div .div{
+color :red !important;}
+
+.select-h1 .h1{
+color :red !important;}
+
+.select-p .p{
+color :red !important;}
+
+.dom-node {
+margin-left: 20px;
+font-family: courier;
+overflow:hidden;
+height: 1.2em;}
+
+.dom-node.open{
+height:auto;}
+
+.tag-name, .id-name {
+padding: 3px;}
+
+
+.id-name{
+color: gray;}
+
+.exp-box{
+display: inline-block;
+width:10px;
+height: 10px;
+margin-right: 4px;}
+
+.exp-box.expanded{
+  cursor:pointer;
+  background-image: url(../img/metric_expanded.png);}
+
+.exp-box.collapsed{
+  cursor:pointer;
+  background-image: url(../img/metric_collapsed.png);}
+
+
+
+
 
 #outliner{
   background-image: url(../img/outliner_background.png);
@@ -33,6 +88,11 @@
 .outliner_node{
 height:18px;
 overflow:hidden;}
+
+.outliner_node > .tag-name,
+.outliner_node > .id-name {
+pointer-events:none;}
+
 
 .outliner_node.open{
 height:auto;}
@@ -169,7 +229,7 @@ height:auto;}
   width:100%;
   position:absolute;
   height: 18px;
-  left:1px;
+  left:23px;
   top:0px;
   z-index: -1;
 }
