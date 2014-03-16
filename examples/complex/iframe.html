@@ -40,8 +40,14 @@
      body{
       /*width:100%;
       min-height:100%;
+      right:0px;
+      left:0px;
       height: auto;
       overflow:visible;*/
+      right:0px;
+      left:0px;
+      margin:0px;
+      position:absolute;
      }
 
       html{
@@ -125,7 +131,7 @@ body > .right {
 </head>
 <body>
     <div id="test" style="width:180px;left:50px;top:100px;position:absolute;">
-        <h1>this is the iframe</h1>
+        <h1 style="position:relative;">this is the iframe</h1>
         <p>stuff</p>
     </div>
     <div id="centered" style="width:480px;margin:40px auto; border:1px solid silver;">
@@ -142,6 +148,6 @@ body > .right {
     <div class="eye right"></div>
 
 
-    <div style="background-color: silver; height:900px;width:300px;margin:40px;"></div>
+    <div style="background-color: silver; height:900px;width:300px;margin:40px;left:1px;position:relative;"></div>
 </body>
 </html>

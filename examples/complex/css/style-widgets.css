@@ -477,7 +477,7 @@ top: -16px;
 
 .style-widget.used input,
 .style-widget.used div.unit,
-.style-widget.used .select{
+.style-widget.used select{
    /*border-color: rgb(217, 238, 251) rgb(181, 181, 181) rgb(119, 135, 151) rgb(255, 255, 255);*/
  background-color: #D5ECFF;
 }
@@ -491,6 +491,10 @@ top: -16px;
 border-top-color: #E2E2E2;
   }
 
+.style-widget.computed input,
+.style-widget.computed select{
+  background-color: #FFD384;
+}
 
 .style-widget.sheet input,
 .style-widget.sheet div.unit,

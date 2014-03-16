@@ -10,7 +10,7 @@
       )
   (:use
 
-    [examples.complex.data :only [UID DATA INITIAL CSS-INFO]]
+    [examples.complex.data :only [UID CSS-INFO KEYS-DOWN]]
    [examples.complex.tokenize :only [tokenize-style]]
    [examples.complex.util :only [value-from-node clear-nodes! location clog px style! jq-dimensions toggle
                                  to? from? within? get-xywh element-dimensions element-offset get-xywh]]
@@ -104,7 +104,7 @@
 
      ))})
 
-(:a #{:a})
+
 
 (sug/defcomp filter-view  [data owner]
   {:render-state
@@ -198,7 +198,10 @@
                   )) )})
 
 
-
+(defn select! [uid-set uid]
+  (if (@KEYS-DOWN 16)
+    (toggle uid-set uid)
+    #{uid}))
 
 (sug/defcomp outliner [data owner opts]
   {:render-state
@@ -210,7 +213,7 @@
         (apply dom/div #js {:className cname :id "outliner"}
           (sug/make-all dom-node (:dom app-state) {:state {:selection selection :mouse-target mouse-target} }))))
    :on {:select-node
-        (fn [e] (om/transact! data [:selection] #(toggle % (:uid e))))
+        (fn [e] (om/transact! data [:selection] #(select! % (:uid e))))
         :collapsing-nodes
         (fn [e] (let [target (:target e)
                       uid (:uid target)
@@ -250,7 +253,7 @@
                          (fn [entry]
                            (let [node (:el entry)
                                  uid (:uid entry)]
-                           (aset (.-style node) rule (px value))
+                           (aset (.-style node) rule value)
                            (final/update-selection @data)
 
                              ))  node-data))) )
@@ -282,8 +285,9 @@
 
 (sug/defcomp toolbox [data owner opts]
   {:did-mount
-   (fn [_ node]
-     (let [[w h] (element-dimensions node)]
+   (fn [_]
+     (let [node (om/get-node owner)
+           [w h] (element-dimensions node)]
      (sug/private! owner :element-dim [w h])
      (sug/fire-down! owner :tool-resize {:w w :h h})))
    :render-state
@@ -353,4 +357,4 @@
                                    (sug/fire-down! owner :tool-resize {:w w :h (+ h dh)})
                                    ))))))  }})
 
-sug/PRIVATE
+

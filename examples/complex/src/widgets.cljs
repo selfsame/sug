@@ -9,7 +9,7 @@
   (:use
    [examples.complex.tokenize :only [tokenize-style]]
    [examples.complex.components :only [modal-box dom-node draggable bool-box]]
-   [examples.complex.data :only [UID INITIAL CSS-INFO]]
+   [examples.complex.data :only [UID CSS-INFO]]
    [examples.complex.util :only [value-from-node clear-nodes! location
                                  clog px to? from? within? get-xywh element-dimensions element-offset get-xywh]]))
 
@@ -22,8 +22,11 @@
 (defn end-edit [e data owner]
   (let [state (om/get-state owner)
         node (om/get-node owner "input")
-        value (int (.-value node))
-        rstring (kstring (:name (:rule state)))]
+
+        rule (:rule state)
+        measured ((:measured CSS-INFO) (:name rule))
+        value (if measured (px (int (.-value node))) (.-value node))
+        rstring (kstring (:name rule))]
     (sug/fire! owner :style-change {:rule rstring :value value})
     (sug/fire! owner :style-set-done {})))
 
@@ -48,8 +51,8 @@
            inline-styles (or (apply merge (map :inline (vals filtered) )) {})
 
            inline ((:name rule) inline-styles)
-
-           parsed (or (final/css-value inline) {})
+           computed (or inline  (.css (js/$ (:el (first (vals filtered)))) rule-name ))
+           parsed (or (final/css-value computed) {})
            value (:value parsed)
            unit (:unit parsed)
            icon (:icon rule)
@@ -60,7 +63,9 @@
            sub-rules (:subs rule)
            root-classes (apply str "style-widget "
 
-                               (cond inline "used ")
+                               (if inline
+                                 "used "
+                                 (if (not= computed (:default rule)) "computed "))
 
                                (when icon "iconed ")
                                (when measured "measured ")
@@ -78,7 +83,9 @@
        (dom/div #js {:className "input-box"}
          (dom/div #js {:className "input-span"}
            (if select-set
-             (apply dom/select nil
+             (apply dom/select #js {:ref "input"
+                                    :value (or value "")
+                                    :onChange #(end-edit % data owner)}
                 (map #(dom/option #js {:value %} %) select-set))
 
              (dom/input #js {:ref "input"
@@ -120,7 +127,7 @@
                         new-value (+ value dx)
                         rstring (kstring (:name (:rule state)))]
                     (aset node "value" new-value)
-                    (sug/fire! owner :style-change {:rule rstring :value (+ value dx)}) ))}})
+                    (sug/fire! owner :style-change {:rule rstring :value (px (+ value dx))}) ))}})
 
 
 

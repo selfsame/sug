@@ -20,7 +20,7 @@
 
         init-state (:init-state map-body)
         will-mount (or (:will-mount map-body) '(fn [_] ))
-        did-mount (or (:did-mount map-body) '(fn [this# node#] ))
+        did-mount (or (:did-mount map-body) '(fn [this#] ))
         should-update (:should-update map-body)
         will-update (:will-update map-body)
         did-update (:did-update map-body)

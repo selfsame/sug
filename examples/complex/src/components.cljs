@@ -9,7 +9,7 @@
       [goog.events :as events]
       )
   (:use
-    [examples.complex.data :only [UID INITIAL]]
+    [examples.complex.data :only [UID]]
    [examples.complex.util :only [value-from-node clear-nodes! location clog px to? from? within? get-xywh element-dimensions element-offset]])
    (:import [goog.ui IdGenerator]
            [goog.events EventType]))
@@ -31,7 +31,7 @@
 
 (sug/defcomp render-count [data owner]
   {:did-mount
-   (fn [_ _] (sug/private! owner :count 0))
+   (fn [_] (sug/private! owner :count 0))
    :render-state
    (fn [_ state]
      (let [renders (sug/private owner :count)]
@@ -104,7 +104,7 @@
                               "outliner_node "
                               (when (expanded? data) "open "))
                   exp-class (cond (children? data) (cond (expanded? data) "exp-box expanded" :else "exp-box collapsed") :else "exp-box")]
-            (apply dom/div #js {:className node-class  :onClick (fn [e] (sug/fire! owner :select-node {:uid @uid}) false)}
+            (apply dom/div #js {:className node-class  :onClick (fn [e] (sug/fire! owner :select-node {:uid uid}) false)}
                      (dom/span #js {:className (str "outliner_background " selected-class)})
                      (dom/span nil
                        (dom/div #js {:className exp-class :onClick (fn [e] (when (:expanded @data)

@@ -5,12 +5,15 @@
   (:require
       [om.core :as om :include-macros true]
       [om.dom :as dom :include-macros true]
-      [cljs.core.async :as async :refer [>! <! <!! put! chan pipe pub sub close!]]))
+      [cljs.core.async :as async :refer [>! <! put! chan pipe pub sub close!]]))
 
 (def PRIVATE (atom {}))
 
+
+
 (defn owner-key [owner]
-  (let [path (.-path (.-__om_cursor (.-props owner)))
+  (let [cursor (.-__om_cursor (.-props owner))
+        path (or (.-path cursor) "?")
         k (or (.-key (.-props owner)) "?")]
     (apply str (conj path k))))
 

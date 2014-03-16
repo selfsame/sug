@@ -32,9 +32,16 @@
 
 
 
+(def KEYS-DOWN (atom #{}))
 
+(def SELECTION-BOX (atom [[-100 -100][-99 -99]]))
 
 (def MOUSE-TARGET (atom nil))
+
+(def OVER-HANDLE (atom nil))
+(def MOUSE-DOWN (atom false))
+(def MOUSE-DOWN-POS (atom nil))
+(def MOUSE-POS (atom nil))
 
 (def CSS-INFO {:measured #{:width :height
                                     :left :top :right :bottom
@@ -52,30 +59,40 @@
                                    :min-height :min-width
                                    :max-height :max-width
                                    :z-index}
-               :css-rules [{:name :width :icon "img/style_icons/width.png"
+               :css-rules [{:name :position :default "static"
+                            :options ["" "static" "relative" "absolute" "fixed"]}
+                           {:name :width :default "0px"
+                            :icon "img/style_icons/width.png"
                             :sub-title "min/max"
                             :subs [{:name :min-width} {:name :max-width}]}
 
-                           {:name :height :icon "img/style_icons/width.png"
+                           {:name :height :default "0px"
+                            :icon "img/style_icons/width.png"
                             :sub-title "min/max"
                             :subs [{:name :min-height} {:name :max-height}]}
-                           {:name :left}
-                           {:name :top}
-                           {:name :margin
+                           {:name :left :default "auto"}
+                           {:name :top :default "auto"}
+                           {:name :margin :default "0px"
                             :sub-title "individual"
-                            :subs [{:name :margin-top} {:name :margin-left}
-                                   {:name :margin-right} {:name :margin-bottom}]}
-                           {:name :padding
+                            :subs [{:name :margin-top :default "0px"}
+                                   {:name :margin-left :default "0px"}
+                                   {:name :margin-right :default "0px"}
+                                   {:name :margin-bottom :default "0px"}]}
+                           {:name :padding :default "0px"
                             :sub-title "individual"
                             :subs [{:name :padding-top} {:name :padding-left}
                                    {:name :padding-right} {:name :padding-bottom}]}
-                           {:name :overflow :options ["inherit" "visible" "hidden" "scroll"]
+                           {:name :overflow :default "visible"
+                            :options ["inherit" "visible" "hidden" "scroll"]
                             :icon "img/style_icons/overflow.png"}
-                           {:name :box-sizing :options ["content-box" "border-box" "inherit"]}
-                           {:name :clear :options ["none" "left" "right" "inherit"]
+                           {:name :box-sizing :default "content-box"
+                            :options ["content-box" "border-box" "inherit"]}
+                           {:name :clear :default "none"
+                            :options ["none" "left" "right" "inherit"]
                             :icon "img/style_icons/clear.png"}
-                           {:name :z-index}
-                           {:name :transform:rotate :icon "img/style_icons/rotate.png"}]})
+                           {:name :z-index :default "auto"}
+                           {:name :transform:rotate :default ""
+                            :icon "img/style_icons/rotate.png"}]})
 
 (def GLOBAL
   {})

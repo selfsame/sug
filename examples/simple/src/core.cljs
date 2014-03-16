@@ -41,6 +41,7 @@
        (fn [e cursor owner]
         (om/set-state! owner :active (not (om/get-state owner :active)) ))}})
 
-(om/root {} label (.-body js/document ))
+
+(om/root label {}  {:target (.-body js/document )})
 
 

@@ -7,10 +7,10 @@
   :source-paths ["src"]
 
   :dependencies [[org.clojure/clojure "1.5.1"]
-                 [org.clojure/clojurescript "0.0-2138" :scope "provided"]
+                 [org.clojure/clojurescript "0.0-2173" :scope "provided"]
                  [org.clojure/core.async "0.1.267.0-0d7780-alpha" :scope "provided"]
                  [domina "1.0.2-SNAPSHOT"]
-                 [om "0.3.6"]]
+                 [om "0.5.2"]]
 
   :plugins [[lein-cljsbuild "1.0.1"]]
 
@@ -43,6 +43,15 @@
                            :output-to "examples/sortable/main.js"
                            :output-dir "examples/sortable/out"
                            :optimizations :none}}
+               {:id "sortable-production"
+                :source-paths ["src" "examples/sortable/src"]
+                :compiler {
+                           :output-to "examples/sortable/main.js"
+                           :output-wrapper false
+                           :pretty-print false
+                           :externs ["examples/sortable/react/react-0.8.0.min.js"]
+
+                           :optimizations :advanced}}
                {:id "events"
                 :source-paths ["src" "examples/events/src"]
                 :compiler {
