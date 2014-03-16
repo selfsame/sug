@@ -6,7 +6,7 @@
             [goog.events :as events])
   (:import [goog.events EventType]))
 
-;(enable-console-print!)
+(enable-console-print!)
 
 ;; =============================================================================
 ;; Utilities
@@ -92,20 +92,33 @@
 (sug/defcomp item [data owner]
   {:render-state
   (fn [_ state]
+    (let [top (or (sug/private owner :top) (:top data))]
     (when-not (:active state) (om/transact! data :top #(* (:idx state) 35)))
-    (dom/div #js {:className (str "item " (:active state)) :style #js {:top (px (:top data)) }}
+    (dom/div #js {:ref "item" :className (str "item " (:active state)) :style #js {:top (px top) }}
         (sug/make render-count data {})
         (sug/make draggable data {:init-state {:message {:uid (:uid state)}}
                                   :opts {:className "dragbox"
-                                         :content (str  (:idx state) "  " (:uid state))}})))
+                                         :content (str  (:idx state) "  " (:uid state))}}))))
 
-   :on {:drag-start (fn [e] (om/set-state! owner :active "active "))
+   :on {:drag-start (fn [e] (om/set-state! owner :active "active ")
+                      (sug/private! owner :top  (* (om/get-state owner :idx) 35)))
         :drag (fn [e]
-                (let [[dx dy] (:diff-location e)]
-                    (om/transact! data :top #(+ % dy))))
+                (let [[dx dy] (:diff-location e)
+                      node (om/get-node owner "item")
+                      top (sug/private owner :top)
+                      new-top (+ top dy)
+                      idx (int (/ (+ new-top 1) 35))]
+                    (aset (.-style node) "top" (px new-top))
+                    (sug/private! owner :top new-top)
+                    (when (not= (sug/private owner :idx) idx)
+                      (do  (sug/private! owner :idx idx)
+                          (om/transact! data :top #(identity new-top))))))
         :drag-stop (fn [e]
                      (om/set-state! owner :active nil)
+                     (sug/private! owner :top false)
+                     (sug/private! owner :idx nil)
                      (om/transact! data :top #(* (om/get-state owner :idx) 35)))}})
+
 
 (sug/defcomp sortof [data owner]
   {:render-state
@@ -123,7 +136,8 @@
                      (sug/make render-count data {}))
         (map (fn [k]
                 (sug/make item (k (:items data))
-                          {:init-state{:uid k :idx (k sorted)}
+                          {:react-key k
+                           :init-state {:uid k :idx (k sorted)}
                            :state (if (not= (k sorted) (k last-sort)) {:idx (k sorted)} {})}))
              (keys (:items data))) )))})
 
