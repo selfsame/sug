@@ -10,5 +10,5 @@ This is the sugared version of the om draggable example.
 * The components display their render count
 * some css transitions to make position swapping pretty
 
-[live example] (http://www.selfsamegames/com/sug/examples/sortable)
+[live example] (http://www.selfsamegames.com/sug/examples/sortable)
 
