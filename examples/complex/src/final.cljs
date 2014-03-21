@@ -3,7 +3,7 @@
   (:use [examples.complex.tokenize :only [tokenize-style]]
         [examples.complex.data :only [SELECTION-BOX OVER-HANDLE MOUSE-DOWN MOUSE-POS MOUSE-DOWN-POS MOUSE-TARGET]]
         [examples.complex.util :only [value-from-node clear-nodes! location clog px to? from? within?
-                     get-xywh element-dimensions element-offset exclude]]))
+                     get-xywh element-dimensions element-offset bounding-client-rect exclude]]))
 
 (enable-console-print!)
 
@@ -25,13 +25,10 @@
   (aget (.-style el) st))
 
 
-(css-value "absolute")
-(css-selector "margin-right")
 
 (defn box? [{:keys [x y w h b r] :as value}]
   (if (or (and x y)  (and w h) (and b r)) true false))
 
-(box? {:x 5 :y 5})
 
 (defn point? [{:keys [x y w h b r] :as value}]
   (if (or (vector? value)
@@ -117,6 +114,21 @@
 (defn draw-rulers []
   (.draw_rulers  (.-tracking (_t))))
 
+
+
+(defn get-measure-style [node rule]
+  (let [inline (aget (.-style node) rule)
+        computed (if (= inline "") (.css (js/$ node) rule) inline)
+        parsed (if (#{"" "auto"} computed) computed (css-value computed))
+        result (cond (= parsed "auto") "auto"
+                     (= parsed "") ""
+                     (map? parsed) (cond
+                                    (= "px" (:unit parsed)) (:value parsed)
+                                    :else nil)
+                     :else nil)]
+    result))
+
+
 (defn update-selection [data]
   (let [app data
         _m (js->clj (.-_m js/window))
@@ -129,23 +141,34 @@
         boxes (mapv
                (fn [el]
                  (let[[x y] (element-offset el)
-                  [w h] (element-dimensions el)]
-                   (get-box [x y w h]))) elements)
+                      [w h] (element-dimensions el)
+                      ml (or (get-measure-style el "margin-left") 0)
+                      mt (or (get-measure-style el "margin-top") 0)
+                      mr (or (get-measure-style el "margin-right") 0)
+                      mb (or (get-measure-style el "margin-bottom") 0)]
+                   (conj (get-box [x y w h]) {:ml ml :mt mt :mr mr :mb mb})
+
+                   )) elements)
         bounds (bounds boxes)]
 
   (clear-except-rulers)
 
 
   (dorun (for [b boxes
-               :let [{:keys [x y w h]} (offset b off)]]
-    (box x y w h nil)))
+               :let [{:keys [x y w h ml mt mr mb]} (offset b off)
+                     [mx my] (mapv - [x y] [ml mt])
+                     [mw mh] (mapv + [w h] [ml mt] [mr mb])]]
+    (do
+        (box mx my mw mh {:lineWidth 1 :fillStyle "rgba(113, 183, 248, 0)" :strokeStyle "rgb(255, 144, 0)"})
+        (box x y w h nil) )))
 
     (when (keyword? @MOUSE-TARGET)
       (let [el (:el (@MOUSE-TARGET nodes))
             [x y] (mapv + (element-offset el) off)
             [w h] (element-dimensions el)
+
             hover-target-box (get-box [x y w h])]
-        (box x y w h {:lineWidth 2 :fillStyle "rgba(113, 183, 248, 0)" :strokeStyle "rgb(0, 0, 248, .5)"})))
+        (box x y w h {:lineWidth 2 :fillStyle "rgba(113, 183, 248, 0)" :strokeStyle "rgba(0, 0, 248, .5)"})))
 
     (let [{:keys [x y b r w h]} (offset bounds off)] (box x y w h "red")
     (aset (_t) "select" (clj->js  {:selected_elements  elements :selection_box [(mapv - [x y] off)
@@ -156,8 +179,13 @@
     (draw-tracking)))
 
 
-(aset (.-style (.getElementById js/document "canvas_clip")) "cursor" "n-resize" )
 
+;; TODO
+
+; move dom dimension comprehension to flow.cljs
+; function to determine offset, dimensions, margin, offsetparent
+; function to modify xywh by pixel value, taking complex positioning into account
+; make sure resize ops are limited to when mouse is not using app UI layer
 
 
 (defn set-cursor
@@ -199,26 +227,21 @@
 
 (def last-mouse-pos false)
 
+
+
 (defn nudge [tokenized [x y w h]]
   (let [node (:el tokenized)
-        position (aget (.-style node) "position")]
+        position (.css (js/$ node) "position")]
     (when (#{"" "static"} position)
       (aset (.-style node) "position" "relative"))
     (for [[v rule] [[x "left"] [y "top"] [w "width"] [h "height"]]
           :when (not= v 0)]
-      (let [inline (aget (.-style node) rule)
-            computed (if (= inline "") (.css (js/$ node) rule) inline)
-            parsed (if (#{"" "auto"} computed) computed (css-value computed))
-            result (cond (= parsed "auto") (str v "px")
-                         (= parsed "") (str v "px")
-                         (map? parsed) (cond
-                                        (= "px" (:unit parsed)) (str (+ (:value parsed) v) "px")
-                                        :else nil)
-                         :else nil)]
-        (when result
+      (let [measure (get-measure-style node rule)
+            result (cond (number? measure) (str (+ measure v) "px")
+                         :else (str v "px"))]
           (do
             (aset (.-style node) rule result)
-            {(keyword rule) result}))))))
+            {(keyword rule) result})))))
 
 
 (defn update-style-tokens [data col]
@@ -258,11 +281,22 @@
           (resize-keyword? @OVER-HANDLE)
           (update-style-tokens data uids))))
 
+(defn layout-info [el]
+  (let [[x y] (element-offset el)
+        [w h] (element-dimensions el)
+        offset-parent (.-offsetParent el)
+        [opx opy] (element-offset offset-parent)]))
+
 (defn xywh-ratio [el sb]
   (let [[[sbx sby][sbr sbb]] sb
         [sbw sbh] (mapv - [sbr sbb] [sbx sby])
-        [x y] (element-offset el)
-        [w h] (element-dimensions el)
+        brect (bounding-client-rect el)
+        ;[x y] (element-offset el)
+        ;[w h] (element-dimensions el)
+        x (:left brect)
+        y (:top brect)
+        w (:width brect)
+        h (:height brect)
         [ox oy] (mapv - [x y] [sbx sby])
         [rx ry] (mapv / [ox oy] [sbw sbh])
         [rw rh] (mapv / [w h] [sbw sbh])]
@@ -274,20 +308,34 @@
            (let [el (:el token)
                  [x y w h] (:xywh cache)
                  offset-parent (:offsetParent cache)
+                 [sx sy] [(or (:sx cache) 0) (or (:sy cache) 0)]
+                 [ml mt] [(or (:ml cache) 0) (or (:mt cache) 0)]
                  [opx opy] (element-offset offset-parent)
-                 position (aget (.-style el) "position")
+                 position (.css (js/$ el) "position")
                  [[sbx sby][sbr sbb]] hot-sb
                  [sbw sbh] (mapv - [sbr sbb] [sbx sby])
                  [nx ny] (mapv + (mapv * [x y] [sbw sbh]) (mapv - [sbx sby] [opx opy]))
-                 [nw nh] (mapv * [w h] [sbw sbh])]
-           (prn offset-parent [opx opy])
+                 [nw nh] (mapv * [w h] [sbw sbh])
+                 [diff-x diff-y] (mapv + [sx sy] (mapv - [nx ny] [x y] [sx sy] [ml mt]))]
+
            (when (#{"" "static"} position)
             (aset (.-style el) "position" "relative"))
-           (.css (js/$ el) #js {:left (px nx) :top (px ny) :width (px nw) :height (px nh) })) ) ;
+           (.css (js/$ el) #js {:left (px diff-x) :top (px diff-y) :width (px nw) :height (px nh) })) ) ;
 
          members))))
 
+(defn resize-selection-box [[[l t][r b]] handle [dx dy]]
+  (cond (= handle :se-resize) [[l t] (mapv + [r b] [dx dy])]
+        (= handle :e-resize) [[l t] [(+ r dx) b]]
+        (= handle :s-resize) [[l t] [r (+ b dy)]]
 
+        (= handle :nw-resize) [[(+ l dx) (+ t dy)] [r b]]
+        (= handle :n-resize) [[l (+ t dy)] [r b]]
+        (= handle :w-resize) [[(+ l dx) t] [r b]]
+
+        (= handle :sw-resize) [[(+ l dx) t] [r (+ b dy)]]
+        (= handle :ne-resize) [[l (+ t dy)] [(+ r dx) b]]
+        :else [[l t][r b]]))
 
 
 
@@ -313,14 +361,22 @@
           (do
             (when-not resize-cache
               (def resize-cache
-                (into {} (mapv (fn [n] {n {:xywh (xywh-ratio (:el n)  @SELECTION-BOX)
+                (into {} (mapv (fn [n] {n {:sx (get-measure-style (:el n) "left")
+                                           :sy (get-measure-style (:el n) "top")
+                                           :ml (get-measure-style (:el n) "margin-left")
+                                           :mt (get-measure-style (:el n) "margin-top")
+                                           :xywh (xywh-ratio (:el n)  @SELECTION-BOX)
                                            :offsetParent (.-offsetParent (:el n))}}) node-data))))
             (when-not hot-sb (def hot-sb @SELECTION-BOX))
-            (def hot-sb [(first hot-sb) (mapv + (last hot-sb) [dx dy])])
+
+            (def hot-sb (resize-selection-box hot-sb @OVER-HANDLE [dx dy]))
 
             (apply-resize data resize-cache)
+
             (update-selection (get-in @data [:wrapper :app-state]))
             ))
 
   (def last-mouse-pos @MOUSE-POS)))
 
+
+(+ clojure game-dev)

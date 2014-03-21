@@ -302,7 +302,7 @@
 
          (dom/div #js {:className "tool" :ref "tool" :style style}
             (sug/make draggable data {:opts {:className (str "title " (when tabbed "tabbed "))
-                                            :content (str view "  " (rand-int 100) "  " (:uid state))} ;(aget owner "_rootNodeID")) }
+                                            :content (str view "  "  "  " (:uid state))} ;(aget owner "_rootNodeID")) }
 
                                      :init-state {:message {:idx (:idx state)}
                                                   :drag-start :remember

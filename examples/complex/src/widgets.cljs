@@ -76,7 +76,7 @@
      (dom/div #js {:className root-classes}
        (dom/div #js {:className "title"}
          (dom/div #js {:className "left"}
-              (dom/p #js {:className "name"} (str rule-name (rand-int 100)) ))
+              (dom/p #js {:className "name"} (str rule-name (comment (rand-int 100)) ) ))
               (dom/div #js {:className "remove"} "."))
        (when icon
          (dom/img #js {:className "icon" :src icon}))
@@ -124,7 +124,7 @@
                         state (om/get-state owner)
                         node (om/get-node owner "input")
                         value (int (.-value node))
-                        new-value (+ value dx)
+                        new-value (int (+ value dx))
                         rstring (kstring (:name (:rule state)))]
                     (aset node "value" new-value)
                     (sug/fire! owner :style-change {:rule rstring :value (px (+ value dx))}) ))}})

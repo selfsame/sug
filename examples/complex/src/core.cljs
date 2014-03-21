@@ -15,7 +15,7 @@
     [examples.complex.data :only [UID GLOBAL INTERFACE MOUSE-TARGET KEYS-DOWN
                                   OVER-HANDLE MOUSE-DOWN-POS MOUSE-DOWN MOUSE-POS]]
     [examples.complex.util :only [value-from-node clear-nodes! location clog px to? from? within? style!
-                     get-xywh element-dimensions element-offset exclude toggle]]
+                     descendant? get-xywh element-dimensions element-offset exclude toggle]]
     [examples.complex.components :only [modal-box dom-node draggable]])
   (:import
    [goog.events EventType]))
@@ -325,10 +325,11 @@
     (swap! MOUSE-DOWN #(identity false))
     (swap! MOUSE-POS #(identity [x y]))
     (let [[dx dy] (mapv - @MOUSE-POS @MOUSE-DOWN-POS)]
-    (if (and (< -2 dx 2)(< -2 dy 2))
-      (om/transact! data [:wrapper :app-state :selection] #(tools/select! % uid))
-      (when @OVER-HANDLE
-        (final/finalize-handle-interaction! DATA))))))
+      (when (descendant? target (js/workspace "html"))
+        (if (and (< -2 dx 2)(< -2 dy 2))
+          (om/transact! data [:wrapper :app-state :selection] #(tools/select! % uid))
+          (when @OVER-HANDLE
+            (final/finalize-handle-interaction! DATA)))))))
 
 (defn check-mousedown [e data owner]
   (let [target (.-target e)
@@ -342,22 +343,22 @@
   (let [target (.-target e)
         uid (.-uid target)
         uid-path (.-uid_path target)
-         [x y] (doc->workspace [(.-clientX e) (.-clientY e)])]
+        [x y] (doc->workspace [(.-clientX e) (.-clientY e)])]
     (swap! MOUSE-POS #(identity [x y]))
-    (if (not @MOUSE-DOWN)
-      (do
-        (final/check-over-resize e [x y])
-        (when-not (= @MOUSE-TARGET uid)
-          (swap! MOUSE-TARGET #(identity uid))
-          (final/update-selection (get-in @DATA [:wrapper :app-state]))
-          (aset target "target" true)))
-      (if @OVER-HANDLE
-        (final/handle-interaction! DATA)))))
+    (when (descendant? target (js/workspace "html"))
+      (if (not @MOUSE-DOWN)
+        (do
+          (final/check-over-resize e [x y])
+          (when-not (= @MOUSE-TARGET uid)
+            (swap! MOUSE-TARGET #(identity uid))
+            (final/update-selection (get-in @DATA [:wrapper :app-state]))
+            (aset target "target" true)))
+        (if @OVER-HANDLE
+          (final/handle-interaction! DATA))))))
 
 (defn handle-keydown [e data owner]
   (let [target (.-target e)
         code (.-keyCode e)]
-    (prn "keydown")
     (swap! KEYS-DOWN conj code)))
 
 (defn handle-keyup [e data owner]

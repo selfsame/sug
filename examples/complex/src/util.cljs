@@ -24,6 +24,16 @@
 (defn element-dimensions [el]
     [(.-offsetWidth el) (.-offsetHeight el)])
 
+(defn bounding-client-rect [el]
+  (let [rect (.getBoundingClientRect el)
+        left (.-left rect)
+        top (.-top rect)
+        right (.-right rect)
+        bottom (.-bottom rect)
+        width (.-width rect)
+        height (.-height rect)]
+    {:left left :top top :right right :bottom bottom :width width :height height}))
+
 (defn jq-dimensions [el]
   [(.width (js/$ el)) (.height (js/$ el))])
 
@@ -53,6 +63,9 @@
 
 (defn px [n]
   (if (number? n) (str n "px") n))
+
+(defn descendant? [node ancestor]
+  (if (.contains ancestor node) true false))
 
 
 (defn to? [owner next-props next-state k]

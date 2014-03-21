@@ -169,8 +169,7 @@
                :undocked [
                           {:uid (guid) :view :style :tabbed [:style :outliner :word-processor]
                            :xywh [700 100 280 400] }
-                          {:uid (guid) :view :word-processor :tabbed [:word-processor :outliner :mode]
-                           :xywh [300 300 600 360] }
+
 
                           ]}})
 
