@@ -49,6 +49,8 @@
             (and x y) (and w h) (and b r)) true false))
 
 
+
+
 (defmulti get-box
   (fn [x] (cond (vector? x) :vect
                   (map? x) :map
@@ -159,8 +161,13 @@
                       ml (or (get-measure-style el "margin-left") 0)
                       mt (or (get-measure-style el "margin-top") 0)
                       mr (or (get-measure-style el "margin-right") 0)
-                      mb (or (get-measure-style el "margin-bottom") 0)]
-                   (conj (get-box [x y w h]) {:ml ml :mt mt :mr mr :mb mb})
+                      mb (or (get-measure-style el "margin-bottom") 0)
+                      pl (or (get-measure-style el "padding-left") 0)
+                      pt (or (get-measure-style el "padding-top") 0)
+                      pr (or (get-measure-style el "padding-right") 0)
+                      pb (or (get-measure-style el "padding-bottom") 0)]
+                   (conj (get-box [x y w h]) {:ml ml :mt mt :mr mr :mb mb
+                                              :pl pl :pt pt :pr pr :pb pb})
 
                    )) elements)
         bounds (bounds boxes)]
@@ -169,12 +176,15 @@
 
 
   (dorun (for [b boxes
-               :let [{:keys [x y w h ml mt mr mb]} (offset b off)
+               :let [{:keys [x y w h ml mt mr mb pl pt pr pb]} (offset b off)
                      [mx my] (mapv - [x y] [ml mt])
-                     [mw mh] (mapv + [w h] [ml mt] [mr mb])]]
+                     [mw mh] (mapv + [w h] [ml mt] [mr mb])
+                     [px py] (mapv + [x y] [pl pt])
+                     [pw ph] (mapv - [w h] [pl pt] [pr pb])]]
     (do
         (box mx my mw mh {:lineWidth 1 :fillStyle "rgba(113, 183, 248, 0)" :strokeStyle "rgb(255, 144, 0)"})
-        (box x y w h nil) )))
+        (box x y w h nil)
+        (box px py pw ph {:lineWidth 1 :fillStyle "rgba(0,0,0,0)" :strokeStyle "rgb(0, 144, 255)"}))))
 
     (when (keyword? @MOUSE-TARGET)
       (let [el (:el (@MOUSE-TARGET nodes))
@@ -373,6 +383,8 @@
 
           (resize-keyword? @OVER-HANDLE)
           (do
+;;            (when (#{"" "static"} position)
+;;              (aset (.-style el) "position" "relative"))
             (when-not resize-cache
               (def resize-cache
                 (into {} (mapv (fn [n] {n {:sx (get-measure-style (:el n) "left")

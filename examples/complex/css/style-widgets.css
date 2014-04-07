@@ -492,8 +492,9 @@ border-top-color: #E2E2E2;
   }
 
 .style-widget.computed input,
+.style-widget.computed > .input-box  div.unit,
 .style-widget.computed select{
-  background-color: #ffecb7;
+  background-color: #FFF1CA;
 }
 
 .style-widget.sheet input,
@@ -504,5 +505,22 @@ border-top-color: #E2E2E2;
 }
 
 
+.color-picker{
+  background-image: url(../img/transparent.png);
+  border: .1em solid gray;
+  cursor:pointer;
+  width: 2.0em;
+height: 2.0em;
+float: right;}
 
+.color-picker .color{
+  width:100%;
+  height:100%;
+}
 
+.color-value.style-widget .input-span{
+  right:4.5em;}
+.color-value .color-picker{
+  margin-right: -4em;
+  width: 3em;
+  height:1.5em;;}

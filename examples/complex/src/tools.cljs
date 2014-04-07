@@ -253,7 +253,6 @@
                                                    {:init-state {:rule rule}})) css-rules)))))
               :on {:style-change
                    (fn [e]
-                     (prn "style-change" (:rule e))
                      (let [rule (:rule e)
                            value (:value e)
                            uids (:selection @data)

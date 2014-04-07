@@ -46,12 +46,15 @@
                                     :border-left :border-right
                                    :z-index :transform:rotate}
 
-                        :quad #{:margin :padding :border :border-radius}
+               :quad #{:margin :padding :border :border-radius}
 
-                        :compact #{:left :top :right :bottom
-                                   :min-height :min-width
-                                   :max-height :max-width
-                                   :z-index}
+               :compact #{:left :top :right :bottom
+                          :min-height :min-width
+                          :max-height :max-width
+                          :z-index :color}
+
+               :color-value #{:color :background-color}
+
                :css-rules [{:name :position :default "static"
                             :options ["" "static" "relative" "absolute" "fixed"]}
                            {:name :width :default "0px"
@@ -63,7 +66,7 @@
                             :icon "img/style_icons/width.png"
                             :sub-title "min/max"
                             :subs [{:name :min-height} {:name :max-height}]}
-                           {:name :left :default "auto"}
+                           {:name :left :default "0px"}
                            {:name :top :default "auto"}
                            {:name :margin :default "0px"
                             :compound {:measure #{:! :1-4}}
@@ -77,6 +80,10 @@
                             :sub-title "individual"
                             :subs [{:name :padding-top} {:name :padding-left}
                                    {:name :padding-right} {:name :padding-bottom}]}
+
+                           {:name :color :default "none"}
+                           {:name :background-color :default "none"}
+
                            {:name :overflow :default "visible"
                             :options ["inherit" "visible" "hidden" "scroll"]
                             :icon "img/style_icons/overflow.png"}

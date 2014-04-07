@@ -34,6 +34,22 @@
 (defn measures->string [col]
   (apply str (interpose " " (map #(str (:value %) (:unit %)) col))))
 
+
+
+
+(sug/defcomp color-picker
+  [data owner opts]
+   {:init-state
+   (fn [_] {:value "rgba(0, 100, 230, 0.5)"})
+    :render-state
+   (fn [_ state]
+     (dom/div #js {:className "color-picker"}
+              (dom/div #js {:className "color"
+                            :style #js {:background-color (:value state)}})))})
+
+
+
+
 (sug/defcomp style-widget
   [data owner opts]
 
@@ -66,21 +82,22 @@
 
 
            icon (:icon rule)
-           measured ((:measured CSS-INFO) (:name rule))
 
+           measured ((:measured CSS-INFO) (:name rule))
            compact ((:compact CSS-INFO) (:name rule))
+           color-value ((:color-value CSS-INFO) (:name rule))
+
            select-set (:options rule)
            sub-rules (:subs rule)
            root-classes (apply str "style-widget "
-
                                (if inline
                                  "used "
                                  (if (not= computed (:default rule)) "computed "))
-
                                (when icon "iconed ")
                                (when measured "measured ")
                                (when quad "quad ")
-                               (when compact "compact "))]
+                               (when compact "compact ")
+                               (when color-value "color-value "))]
 
 
      (dom/div #js {:className root-classes}
@@ -95,12 +112,18 @@
          (dom/img #js {:className "icon" :src icon}))
        (dom/div #js {:className "input-box"}
          (dom/div #js {:className "input-span"}
-           (if select-set
+           (cond
+            select-set
              (apply dom/select #js {:ref "input"
                                     :value (or value "")
                                     :onChange #(end-edit % data owner)}
                 (map #(dom/option #js {:value %} %) select-set))
-
+            color-value
+            (dom/div nil
+             (dom/input #js {:ref "input"
+                             :value (or value "")})
+             (sug/make color-picker data {:state {:value (or value "")}}))
+            :else
              (dom/input #js {:ref "input"
                              :value (or value "")
                              :onChange #(handle-change % data owner)

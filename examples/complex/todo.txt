@@ -1,0 +1,33 @@
+
+
+BUGS:
+
+  * iframe offset is getting mixed for the draggable components.
+  * 'auto' style for left/right needs to compute for some resize/move operations
+
+
+STRUCTURE:
+
+  * Combine the different css parsing functionality into one 'tokenizer', it should have the source (:inline :computed :sheet) as well.
+  * Convertion tool for css measures, this might need to do some tricks to work accurately (changing css, recording the results, then changinging back)
+  * Style widgets should use a more composable data format to figure themselves out
+  * Collapsable tree component, will be used for outliner and file browser.  Should have general logic for 'folders' and moving nodes around the tree.
+
+NEW FEATURES
+  * App will now target the desktop, which gives it the ability to browser files and have a 'project' interconnect
+  * Color highlights for styles to show their source (inline/sheets/computed)
+  * History/undo/redo via om/clj
+  * Color swatches / color dropper tool
+  * Multiple documents open at one time
+
+
+REIMPLEMENT:
+  * Ruler guides / snapping
+  * Re-arrange outliner nodes
+
+
+SALVAGE:
+  * Color picker widget
+  * File browser backend
+  * WYSIWYG mode
+  * CSS compiling?
