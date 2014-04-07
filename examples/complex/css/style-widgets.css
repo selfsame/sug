@@ -340,7 +340,7 @@ line-height: 1.1em;
 }
 
 .style-widget .subsection.expanded{
-  height:120px;
+  height:auto;
 
 }
 
@@ -475,8 +475,8 @@ top: -16px;
 
 /*  STYLES IN USE */
 
-.style-widget.used input,
-.style-widget.used div.unit,
+.style-widget.used > .input-box input,
+.style-widget.used > .input-box  div.unit,
 .style-widget.used select{
    /*border-color: rgb(217, 238, 251) rgb(181, 181, 181) rgb(119, 135, 151) rgb(255, 255, 255);*/
  background-color: #D5ECFF;

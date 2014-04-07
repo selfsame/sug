@@ -1,11 +1,19 @@
 (ns examples.complex.final
-  (:require [goog.style :as gstyle])
+  (:require [goog.style :as gstyle]
+            [clojure.string :as string])
   (:use [examples.complex.tokenize :only [tokenize-style]]
         [examples.complex.data :only [SELECTION-BOX OVER-HANDLE MOUSE-DOWN MOUSE-POS MOUSE-DOWN-POS MOUSE-TARGET]]
         [examples.complex.util :only [value-from-node clear-nodes! location clog px to? from? within?
                      get-xywh element-dimensions element-offset bounding-client-rect exclude]]))
 
 (enable-console-print!)
+
+(defn camel-case [s]
+  (let [words (map first (re-seq #"(\w)+" s))
+        f (first words)
+        r (rest words)]
+    (apply str (flatten [f (map string/capitalize r)]))))
+
 
 
 (defn parse-css-for [parser s]
@@ -16,7 +24,8 @@
     (apply conj (map (fn [[k v]] {(keyword k) v}) sm))))
 
 (defn css-value [s]
-  (parse-css-for (.-CSS_value_parser js/window) s))
+  (let [result (parse-css-for (.-CSS_value_parser js/window) s)]
+    (if (map? result) result nil)))
 
 (defn css-selector [s]
   (parse-css-for (.-CSS_selector_parser js/window) s))
@@ -24,7 +33,12 @@
 (defn get-style [el st]
   (aget (.-style el) st))
 
+(defn css-split-value [string]
+ (mapv first (re-seq #"(\S+)(\s)*" string)))
 
+(defn css-values [string]
+  (let [split (css-split-value string)]
+  (filter map? (mapv css-value split))))
 
 (defn box? [{:keys [x y w h b r] :as value}]
   (if (or (and x y)  (and w h) (and b r)) true false))
@@ -379,4 +393,3 @@
   (def last-mouse-pos @MOUSE-POS)))
 
 
-(+ clojure game-dev)

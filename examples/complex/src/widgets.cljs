@@ -10,7 +10,7 @@
    [examples.complex.tokenize :only [tokenize-style]]
    [examples.complex.components :only [modal-box dom-node draggable bool-box]]
    [examples.complex.data :only [UID CSS-INFO]]
-   [examples.complex.util :only [value-from-node clear-nodes! location
+   [examples.complex.util :only [value-from-node clear-nodes! location multiple?
                                  clog px to? from? within? get-xywh element-dimensions element-offset get-xywh]]))
 
 (defn kstring [k]
@@ -31,7 +31,8 @@
     (sug/fire! owner :style-set-done {})))
 
 
-
+(defn measures->string [col]
+  (apply str (interpose " " (map #(str (:value %) (:unit %)) col))))
 
 (sug/defcomp style-widget
   [data owner opts]
@@ -48,16 +49,25 @@
            nodes (:nodes app)
            selection (:selection app)
            filtered (conj {} (select-keys nodes selection ))
+
+           quad ((:quad CSS-INFO) (:name rule))
            inline-styles (or (apply merge (map :inline (vals filtered) )) {})
 
            inline ((:name rule) inline-styles)
            computed (or inline  (.css (js/$ (:el (first (vals filtered)))) rule-name ))
-           parsed (or (final/css-value computed) {})
-           value (:value parsed)
-           unit (:unit parsed)
+
+            parsed (if (nil? computed) [] (final/css-values computed))
+            compound (and (:compound rule)
+                          (< 1 (count parsed)))
+           value (if compound
+                   (measures->string parsed)
+                   (:value (first parsed)))
+           unit (:unit (first parsed))
+
+
            icon (:icon rule)
            measured ((:measured CSS-INFO) (:name rule))
-           quad ((:quad CSS-INFO) (:name rule))
+
            compact ((:compact CSS-INFO) (:name rule))
            select-set (:options rule)
            sub-rules (:subs rule)
@@ -77,7 +87,10 @@
        (dom/div #js {:className "title"}
          (dom/div #js {:className "left"}
               (dom/p #js {:className "name"} (str rule-name (comment (rand-int 100)) ) ))
-              (dom/div #js {:className "remove"} "."))
+              (dom/div #js {:className "remove"
+                            :onClick #(do
+                                        (sug/fire! owner :style-change {:rule rule-name :value ""})
+                                        (sug/fire! owner :style-set-done {})) } "."))
        (when icon
          (dom/img #js {:className "icon" :src icon}))
        (dom/div #js {:className "input-box"}
@@ -101,14 +114,15 @@
            (dom/div #js {:className "unit"} (or unit "")))
          (when measured
            (sug/make draggable data {:opts {:className "scrub"}
-                                     :init-state {:drag-start :scrub-start
+                                     :init-state {:message {:name (:name rule)}
+                                                  :drag-start :scrub-start
                                                   :drag :scrub
-                                                  :drag-stop :style-set-done}})))
+                                                  :drag-stop :scrub-stop}})))
 
         (when sub-rules
-          (apply dom/div #js {:className (str (if (:expanded state)
-                                                (str "subsection " "expanded ")
-                                                "subsection ")
+          (apply dom/div #js {:className (str "clearfix subsection "
+                                              (when (:expanded state)
+                                                "expanded ")
                                               (when quad "quad "))}
              (dom/p #js {:className "name"
                          :onClick #(om/set-state! owner :expanded (not (:expanded (om/get-state owner))))}
@@ -117,17 +131,27 @@
               (sug/make style-widget data {:state {:styles (:style state)
                                                            :rule rule}})) sub-rules))))))
     :on {:scrub-start (fn [e]
-                        (sug/private! owner :scrubbing true))
-
+                        (when (= (:name e) (:name (om/get-state owner :rule)))
+                          (sug/private! owner :scrubbing true)))
+         :scrub-stop (fn [e]
+                        (when (= (:name e) (:name (om/get-state owner :rule)))
+                          (sug/fire! owner :style-set-done {})))
          :scrub (fn [e]
-                  (let [dx (* (first (:diff-location e)) .5)
-                        state (om/get-state owner)
-                        node (om/get-node owner "input")
-                        value (int (.-value node))
-                        new-value (int (+ value dx))
-                        rstring (kstring (:name (:rule state)))]
-                    (aset node "value" new-value)
-                    (sug/fire! owner :style-change {:rule rstring :value (px (+ value dx))}) ))}})
+                  (when (= (:name e) (:name (om/get-state owner :rule)))
+                    (let [dx (* (first (:diff-location e)) .5)
+                          state (om/get-state owner)
+                          node (om/get-node owner "input")
+                          values (final/css-values (.-value node))
+                          changed-values (mapv #(int (+ (:value %) dx)) values)
+                          px-string (apply str (interpose " " (mapv px changed-values)))
+                          input-value (if (multiple? changed-values)
+                                        px-string
+                                        (apply str (interpose " " changed-values)))
+                          rstring (kstring (:name (:rule state)))]
+                      (aset node "value" input-value)
+                      (sug/fire! owner :style-change {:rule rstring :value px-string}) )))}})
 
 
+(apply str (interpose " " (mapv px [11 6])))
 
+(mapv #(int (+ (:value %) 1)) (final/css-values "10px 5px"))

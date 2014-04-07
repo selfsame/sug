@@ -20,22 +20,12 @@
 
 
 
-(defn ITER [V]
-  (let [P (parts V)
-        C (count P)
-      S (rands C)]
-  (map (fn [s p] {s p}) S P)))
-
-(ITER (map (fn [n] {n {}}) (rands 100)) )
-
-;(def MESS (ITER (ITER (ITER (ITER (ITER (ITER (map (fn [n] {n {}}) (rands 1000)) )))))))
-
-
 
 (def KEYS-DOWN (atom #{}))
 
 (def SELECTION-BOX (atom [[-100 -100][-99 -99]]))
 
+(def MOUSE-DOWN-WORKSPACE (atom nil))
 (def MOUSE-TARGET (atom nil))
 
 (def OVER-HANDLE (atom nil))
@@ -47,10 +37,13 @@
                                     :left :top :right :bottom
                                    :min-height :min-width
                                    :max-height :max-width
+                                   :margin :padding :border
                                     :margin-top :margin-bottom
                                     :margin-left :margin-right
                                     :padding-top :padding-bottom
                                     :padding-left :padding-right
+                                    :border-top :border-bottom
+                                    :border-left :border-right
                                    :z-index :transform:rotate}
 
                         :quad #{:margin :padding :border :border-radius}
@@ -73,12 +66,14 @@
                            {:name :left :default "auto"}
                            {:name :top :default "auto"}
                            {:name :margin :default "0px"
+                            :compound {:measure #{:! :1-4}}
                             :sub-title "individual"
                             :subs [{:name :margin-top :default "0px"}
                                    {:name :margin-left :default "0px"}
                                    {:name :margin-right :default "0px"}
                                    {:name :margin-bottom :default "0px"}]}
                            {:name :padding :default "0px"
+                            :compound {:measure #{:! :1-4}}
                             :sub-title "individual"
                             :subs [{:name :padding-top} {:name :padding-left}
                                    {:name :padding-right} {:name :padding-bottom}]}
@@ -92,7 +87,22 @@
                             :icon "img/style_icons/clear.png"}
                            {:name :z-index :default "auto"}
                            {:name :transform:rotate :default ""
-                            :icon "img/style_icons/rotate.png"}]})
+                            :icon "img/style_icons/rotate.png"}
+                           {:name :border :default "0px"
+                            :compound {:measure #{:?} :color #{:?} :word #{:?}}
+                            :sub-title "advanced"
+                            :subs [
+;;                                    {:name :border-color :default "black"
+;;                                     :compound {:color #{:?}}}
+;;                                    {:name :border-style :default "solid"
+;;                                     :options ["none" "solid" "dashed" "dotted"]
+;;                                     :compound {:word #{:?}}}
+                                   {:name :border-top :default "0px"}
+                                   {:name :border-left :default "0px"}
+                                   {:name :border-right :default "0px"}
+                                   {:name :border-bottom :default "0px"}]}
+
+                           ]})
 
 (def GLOBAL
   {})

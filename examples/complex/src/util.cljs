@@ -3,6 +3,12 @@
             [om.core :as om :include-macros true])
   (:use [examples.complex.data :only [UID]]))
 
+(defn multiple? [col]
+  (if (and (sequential? col)
+           (< 1 (count col)))
+    true false))
+
+
 (defn- value-from-node
   [owner field]
   (let [n (om/get-node owner field)

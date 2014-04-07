@@ -13,7 +13,7 @@
   (:use
 
     [examples.complex.data :only [UID GLOBAL INTERFACE MOUSE-TARGET KEYS-DOWN
-                                  OVER-HANDLE MOUSE-DOWN-POS MOUSE-DOWN MOUSE-POS]]
+                                  OVER-HANDLE MOUSE-DOWN-POS MOUSE-DOWN MOUSE-POS MOUSE-DOWN-WORKSPACE]]
     [examples.complex.util :only [value-from-node clear-nodes! location clog px to? from? within? style!
                      descendant? get-xywh element-dimensions element-offset exclude toggle]]
     [examples.complex.components :only [modal-box dom-node draggable]])
@@ -318,26 +318,31 @@
         oy (aget (.-_m js/window) "outer_y")]
     (mapv - xy [ox oy] [16 16])))
 
+
 (defn check-mouseup [e data owner]
   (let [target (.-target e)
         uid (.-uid target)
         [x y] (doc->workspace [(.-clientX e) (.-clientY e)])]
     (swap! MOUSE-DOWN #(identity false))
+    (swap! MOUSE-DOWN-WORKSPACE #(identity false))
     (swap! MOUSE-POS #(identity [x y]))
     (let [[dx dy] (mapv - @MOUSE-POS @MOUSE-DOWN-POS)]
-      (when (descendant? target (js/workspace "html"))
         (if (and (< -2 dx 2)(< -2 dy 2))
-          (om/transact! data [:wrapper :app-state :selection] #(tools/select! % uid))
-          (when @OVER-HANDLE
-            (final/finalize-handle-interaction! DATA)))))))
+           (when uid
+             (om/transact! data [:wrapper :app-state :selection] #(tools/select! % uid)))
+           (when @OVER-HANDLE
+             (final/finalize-handle-interaction! DATA))))))
 
 (defn check-mousedown [e data owner]
   (let [target (.-target e)
         uid (.-uid target)
         [x y] (doc->workspace [(.-clientX e) (.-clientY e)])]
+    (when (descendant? target (js/workspace "html"))
+      (swap! MOUSE-DOWN-WORKSPACE #(identity true)))
     (swap! MOUSE-DOWN #(identity true))
     (swap! MOUSE-DOWN-POS #(identity [x y]))
     (swap! MOUSE-POS #(identity [x y]))))
+
 
 (defn check-mousemove [e data owner]
   (let [target (.-target e)
@@ -345,16 +350,17 @@
         uid-path (.-uid_path target)
         [x y] (doc->workspace [(.-clientX e) (.-clientY e)])]
     (swap! MOUSE-POS #(identity [x y]))
-    (when (descendant? target (js/workspace "html"))
-      (if (not @MOUSE-DOWN)
-        (do
-          (final/check-over-resize e [x y])
-          (when-not (= @MOUSE-TARGET uid)
+    (if (not @MOUSE-DOWN)
+        (final/check-over-resize e [x y]))
+    (if @MOUSE-DOWN-WORKSPACE
+        (if @OVER-HANDLE
+          (final/handle-interaction! DATA))
+      (when-not (and @MOUSE-DOWN (= @MOUSE-TARGET uid))
             (swap! MOUSE-TARGET #(identity uid))
             (final/update-selection (get-in @DATA [:wrapper :app-state]))
-            (aset target "target" true)))
-        (if @OVER-HANDLE
-          (final/handle-interaction! DATA))))))
+
+        ))))
+
 
 (defn handle-keydown [e data owner]
   (let [target (.-target e)
@@ -386,14 +392,9 @@
    (fn [_]
      (.keydown (js/$ js/window)  #(handle-keydown % data owner))
      (.keyup (js/$ js/window)  #(handle-keyup % data owner))
-     (.mouseup (js/$ js/window) #(check-mouseup % data owner))
      (.mousedown (js/$ js/window) #(check-mousedown % data owner))
      (.mousemove (js/$ js/window) #(check-mousemove % data owner))
-;;       (doto (first (.toArray (js/$$ "body")))
-;;             (events/listen EventType.MOUSEUP #(check-mouseup % data owner))
-;;             (events/listen EventType.MOUSEDOWN #(check-mousedown % data owner))
-;;             (events/listen EventType.MOUSEMOVE #(check-mousemove % data owner)))
-
+     (.on (js/$ js/window) "mouseup" #(check-mouseup % data owner))
      (doto (.getElementById js/document "doc-scroll")
             (events/listen EventType.SCROLL #(update-scroll % data owner))))
    :will-update
@@ -430,4 +431,5 @@
   (let [i-proxy (.getElementById js/document "iframe_proxy")
         [iw ih] (final/calc-iframe-dim)]
     (style! i-proxy :height (px ih)))))
+
 

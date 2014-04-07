@@ -11,27 +11,41 @@
   <meta name="viewport" content="width=device-width">
   <script src="js/libs/iframe_cljs.js" type="text/javascript"></script>
 
-  <style id="_fp_page_css"></style>
-  <style id="fp_cursor_override"></style>
   <style id="noselect_styles">
-    *{
-      -webkit-user-select: none;
-      -khtml-user-select: none;
-      -moz-user-select: -moz-none;
-      -o-user-select: none;
-      user-select: none;
-    }
+      *{user-select:none;
+      -webkit-user-select: none;}
 
-    /*selectable elements get this*/
-    ._fp_editable, ._fp_editable *, input, textarea{
-      -webkit-touch-callout: text;
-      -webkit-user-select: text;
-      -khtml-user-select: text;
-      -moz-user-select: text;
-      -o-user-select: text;
-      -ms-user-select: text;
-      user-select: text;
-    }
+      #holder{
+          background-image: url(http://www.selfsamegames.com/vertex/img/hjag.png);
+        background-repeat:repeat-x;
+        background-position: 0px 281px;
+      }
+      ul{list-style: none;
+margin-left: -38px;}
+    .right{float:right; margin:16px 0px 0px 10px;}
+    a{text-decoration:none;}
+    .third{float:left; width:31%;margin-right:2%;margin-top:20px;}
+    .fat{width:39%;}
+    .skinny{width:23%;}
+    .twothird{float:left; width:64%;margin-right:2%;margin-top:20px;}
+    .side{
+      position:absolute;
+          text-align:right;
+      margin-left:-200px;
+      margin-top:16px;
+      width:180px;
+      font-size:24px;}
+
+    .shout{margin-top:16px;
+      font-size:34px;
+      font-weight:bold;
+      color:#ff5c14}
+
+    .third h2{margin-bottom:0px;}
+    .third img{width:100%; height:auto;}
+    p{font-family:courier;}
+
+    h1, h2, h3{font-family:arial; color:#4f1835;}
     p, h1, h2, h3, h4, h5, h6 a, i, b, span, ul, li, ol {
       margin-top: 1em;
       margin-bottom: 1em;
@@ -40,114 +54,112 @@
      body{
       /*width:100%;
       min-height:100%;
-      right:0px;
-      left:0px;
       height: auto;
+          padding-bottom:100px;
       overflow:visible;*/
-      right:0px;
-      left:0px;
-      margin:0px;
-      position:absolute;
      }
 
       html{
         overflow:hidden;
        }
 
-#stash .left, #stash .right {
-    border-width:58px 0px 1px;
-    border-style:solid;
-    border-color:black;
-    width:250px;
-    height:126px;
-    background-color:rgba(0, 0, 0, 0);
-    position:absolute;
-    margin-top:44px;
-    margin-right:76px;
-    margin-left:78px;
-    opacity:0.6720430107526881;
-}
-body > .left, body > .right {
-    border:6px solid black;
-    border-bottom-left-radius:100px;
-    background-color:rgb(255, 255, 255);
-    position:absolute;
-    width:108px;
-    height:103px;
-    border-top-left-radius:100px;
-    border-top-right-radius:100px;
-    border-bottom-right-radius:100px;
-}
-#body {
-    position:absolute;
-    border:0px solid black;
-    width:332px;
-    height:599px;
-    top:25px;
-    left:267px;
-    background-color:rgb(249, 190, 141);
-    border-top-left-radius:200px;
-    border-top-right-radius:200px;
-    border-bottom-right-radius:200px;
-    border-bottom-left-radius:200px;
-}
-#stash {
-    position:absolute;
-    border:0px solid black;
-    width:657px;
-    height:297px;
-    top:124px;
-    left:96px;
-    overflow:hidden;
-}
-#stash .right {
-    top:76px;
-    left:269px;
-    border-top-left-radius:0px;
-    border-top-right-radius:254px;
-    border-bottom-right-radius:0px;
-    border-bottom-left-radius:0px;
-}
-#stash .left {
-    top:75px;
-    left:-5px;
-    border-top-left-radius:254px;
-}
-body > .left {
-    top:100px;
-    left:294px;
-}
-body > .right {
-    top:98px;
-    left:452px;
-}
-
-
 
   </style>
-  <style id="_fp_wireframe"></style>
 
-  <script id="fp_webfonts_start"></script>
 </head>
-<body>
-    <div id="test" style="width:180px;left:50px;top:100px;position:absolute;">
-        <h1 style="position:relative;">this is the iframe</h1>
-        <p>stuff</p>
+<body id="document" style="margin:0px; width: 100%; height: 100%;">
+
+    <div id="header" style="position: relative; width: 100%; height: 70%; overflow: hidden;" id="header" class="break__fullsize_3">
+        <div style="position: relative; width: 100%; height: 0px; margin-top: 305px;" id="holder" class="break__fullsize_5">
+            <img style="display: block; left: 0px; vertical-align: middle; position: relative; margin-top: -338px; width: 100%; min-width:1000px;" src="http://s3.selfsamegames.com.s3.amazonaws.com/users/jplur/img/vbake.png" id="splash" class="">
+        </div>
+        <div id="holder"  style="position: relative; text-align:center; width: 100%; height: 297px; margin: 240px auto 0px auto;  color: rgb(255, 255, 255); font-family: Arial; font-weight: bold; font-size: 80px; line-height: 0.8999999999999997; text-shadow: black 4px 4px 7px;" id="blaster" class="break__fullsize_8">
+            BLENDER VERTEX BAKING ADDON
+        </div>
     </div>
-    <div id="centered" style="width:480px;margin:40px auto; border:1px solid silver;">
-        <h1>this is centered</h1>
+    <div style="position: relative; padding-left: 170px; width: 1000px; height: 312px; margin: 0px auto; margin-bottom:100px; cursor: inherit;" id="content" class="break__fullsize_11">
+
+        <div class="third fat" >
+        <h1 class="shout">an addon for blending vertex color layers into a single target</h1>
+        </div>
+
+        <div class="third skinny">
+            <h2>DOWNLOAD</h2>
+            <p>Warning: alpha not for production</p>
+            <h3><a href="https://raw.githubusercontent.com/selfsame/vcol-compositor/master/bake_vertex_diffuse.py">bake_vertex_diffuse.py</a></h3>
+            <h3><a href="https://github.com/selfsame/vcol-compositor">github</a></h3>
+
+        </div>
+        <div class="third">
+            <h2>INSTALLATION</h2>
+            <p>Install the addon by placing it in the scripts/addons directory or by
+                clicking "install from file" in user preferences. Once installed, make sure it's activated.
+                The addon is called "Render: Vertex Diffuse Bake"</p>
+
+        </div>
+
+        <div class="twothird">
+        <h1 class="side">WHY VERTEX COLORS</h1>
+
+        <p>Vertex colors are floats stored in the mesh data along with the position data. They can be used to add color variation to textured models, add lighting or ambient occlusion effects
+            to models, or to store special information that a shader uses (vertex alpha, texture splatting, etc.), many games use vertex colors almost exclusively, and in the right hands it can be a
+            memorable art style.</p>
+            <img src="http://www.selfsamegames.com/vertex/img/sausage.jpg">
+            <p>Blender has nice tools for manually painting vertex colors on a mesh, and you can render bake to a vertex color target which works well for ambient occlusion or lighting renders,
+            but it's a lot of setup to get a final result of lighting, ambient occlusion, and color data baked together in the right amounts.</p>
+
+            <p>I decided to make a compositor for vertex color layers, an addon that could mix and blend instances of the vcol layer data and compile them into a single target.</p>
+        </div>
+
+        <div class="third"  style="float:right;">
+            <img class="right" src="http://www.selfsamegames.com/vertex/img/vertex-bake-ui.jpg">
+        </div>
+
+
+
+
+        <div class="twothird">
+            <h1  class="side">USAGE</h1>
+            <ul>
+                <li><p>the Vertex Bake UI is in the Render buttons panel</li>
+                <li><p>the combined vertex results are written to the 'Col' layer, you should have this layer set to visible,
+                    but not part of the bake stack</p></li>
+                <li><p>light and ao baking writes to LIGHT and AO layers (they should be created automatically),
+                    but you can set a custom target in the Vertex Bake
+                    UI panel (as long as it's an existing layer!)</p></li>
+                <li><p>'add layer pass' will add a layer to the mixing stack, you can change the source vcol data. </p></li>
+                 <li><p>Use the edge split modifier to get hard edges for vetex light baking</p></li>
+                <li><p>You have to rebake lighting and/or ao every time you make changes to the scene</p></li>
+                <li><p>if you want to save the combined output, rename the Col layer and make a new 'Col' to replace it.</p></li>
+                <li><p>When using GLSL shading mode, you'll need to check 'Vertex Color Paint' in the object material buttons to see
+                    vertex colors in the viewport</p></li>
+                <li><p>typically you want to set the material to 'shadeless' so see the vcol output without realtime lighting applied</p></li>
+
+                <li><p>A basic stack recipie is to mix ao and lighting, then multiply a color layer</p>  </li>
+                <li><p>remember you can still paint manually on any of the layers, this is useful for removing
+                    AO artifacts and other fine tweaks</p></li>
+            </ul>
+        </div>
+
+        <div class="third"  style="float:right;">
+        <img class="right" src="http://www.selfsamegames.com/vertex/img/vertex-stack.jpg">
+        </div>
+
+
+
+        <div class="twothird" style="clear:both;">
+        <h1 class="side">ISSUES</h1>
+        <p>overlay blending mode currently doesn't use blending weight</p>
+        <p>You may need to apply rotation and scale before baking.</p>
+        <p>The chain icon is supposed to convert a layer into a mask for how the previous and next layers mix, but it doesn't work right at the moment</p>
+        <p>'Add color pass' is not functional yet, it will eventually add a solid color layer/<p>
+            </div>
+
+        <div class="third"  style="float:right;">
+            <img class="right" src="http://www.selfsamegames.com/vertex/img/vertex-demo.jpg">
+        </div>
+
     </div>
-
-
-    <div class="" id="body"></div>
-    <div class="" id="stash">
-        <div class="left"></div>
-        <div class="right"></div>
-    </div>
-    <div class="eye left"></div>
-    <div class="eye right"></div>
-
-
-    <div style="background-color: silver; height:900px;width:300px;margin:40px;left:1px;position:relative;"></div>
+    <div style="height:100px;width:2px;clear: both;"></div>
 </body>
 </html>

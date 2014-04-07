@@ -15,6 +15,8 @@
            [goog.events EventType]))
 
 
+(declare draggable)
+
 (defn children? [data]
   (pos? (count (:children data))))
 
@@ -105,7 +107,14 @@
                               (when (expanded? data) "open "))
                   exp-class (cond (children? data) (cond (expanded? data) "exp-box expanded" :else "exp-box collapsed") :else "exp-box")]
             (apply dom/div #js {:className node-class  :onClick (fn [e] (sug/fire! owner :select-node {:uid uid}) false)}
-                     (dom/span #js {:className (str "outliner_background " selected-class)})
+                   (dom/span #js {:className (str "outliner_background " selected-class)}
+
+                               (sug/make draggable data {:opts {:className "node-drag"}
+                                                         :init-state {:drag-start :drag-nodes-start
+                                                                      :drag :drag-nodes
+                                                                      :drag-stop :drag-nodes-stop}
+                                                         :state {:message {:selected selected}}}))
+
                      (dom/span nil
                        (dom/div #js {:className exp-class :onClick (fn [e] (when (:expanded @data)
                                                                              (sug/fire! owner :collapsing-nodes

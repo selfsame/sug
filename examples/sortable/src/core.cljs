@@ -149,3 +149,27 @@
 
 
 (om/root sortof APP {:target (.-body js/document)})
+
+(sug/defcomp b [data owner]
+  {:should-update
+   (fn [_ next-props next-state]
+     (prn "B" next-state (om/get-render-state owner))
+     true)
+   :render-state
+   (fn [_ state]
+     (dom/div nil
+              (dom/button #js {:onClick #(om/set-state! owner :g (rand-int 100))} "B")
+              ))})
+
+(sug/defcomp a [data owner]
+  {:should-update
+   (fn [_ next-props next-state]
+     (prn "A" next-state (om/get-render-state owner))
+     true)
+   :render-state
+   (fn [_ state]
+     (dom/div nil
+              (dom/span nil "A")
+              (sug/make b data {:init-state {:g -1}})))})
+
+(om/root a {} {:target (.-body js/document)})

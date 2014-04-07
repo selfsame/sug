@@ -29,6 +29,14 @@ height: 1.2em;}
 .dom-node.open{
 height:auto;}
 
+
+.moving .dom-node {
+pointer-events:none;
+}
+
+.moving .selected {
+opacity: .5;}
+
 .tag-name, .id-name {
 padding: 3px;}
 
@@ -64,8 +72,17 @@ margin-right: 4px;}
   left:1px;
 }
 
+.node-drag{
+  position:absolute;
+  width:100%;
+  height:100%;}
+
+.selected .node-drag:hover{
+ cursor: n-resize;
+}
+
 #outliner .outliner_node, #outliner_effects .outliner_node{
-  cursor:pointer;
+
   margin: 0px;
   padding: 4px 0px 0px 2px;
   padding-left: 12px;
@@ -83,6 +100,14 @@ margin-right: 4px;}
   z-index:4;
   vertical-align: middle;
 
+}
+
+#outliner .outliner_node:hover{
+  cursor:pointer;
+}
+
+#outliner.moving .outliner_node:hover{
+  cursor:n-resize;
 }
 
 .outliner_node{

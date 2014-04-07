@@ -10,7 +10,7 @@
       )
   (:use
 
-    [examples.complex.data :only [UID CSS-INFO KEYS-DOWN]]
+   [examples.complex.data :only [UID CSS-INFO KEYS-DOWN]]
    [examples.complex.tokenize :only [tokenize-style]]
    [examples.complex.util :only [value-from-node clear-nodes! location clog px style! jq-dimensions toggle
                                  to? from? within? get-xywh element-dimensions element-offset get-xywh]]
@@ -209,7 +209,7 @@
       (let [app-state data
             selection (:selection app-state)
             mouse-target (:mouse-target app-state)
-            cname (str "select-" (:active (:element-filter app-state)))]
+            cname (str "select-" (:active (:element-filter app-state)) " " (when (:moving state) "moving"))]
         (apply dom/div #js {:className cname :id "outliner"}
           (sug/make-all dom-node (:dom app-state) {:state {:selection selection :mouse-target mouse-target} }))))
    :on {:select-node
@@ -220,7 +220,17 @@
                       value (not (:expanded target))
                       nodes (:nodes e)]
                   (om/transact! data [:nodes uid :expanded] not)
-                  (om/transact! data [:selection] #(apply disj % nodes) ))) }})
+                  (om/transact! data [:selection] #(apply disj % nodes) )))
+        :drag-nodes-start (fn [e]
+                            (when (:selected e)
+                              (final/set-cursor "n-resize")
+                              (om/set-state! owner :moving true)))
+        :drag-nodes (fn [e] )
+        :drag-nodes-stop (fn [e]
+                           (when (:selected e)
+                           (final/set-cursor "default")
+                           (om/set-state! owner :moving false))) }})
+
 
 
 
@@ -243,6 +253,7 @@
                                                    {:init-state {:rule rule}})) css-rules)))))
               :on {:style-change
                    (fn [e]
+                     (prn "style-change" (:rule e))
                      (let [rule (:rule e)
                            value (:value e)
                            uids (:selection @data)
@@ -253,7 +264,7 @@
                          (fn [entry]
                            (let [node (:el entry)
                                  uid (:uid entry)]
-                           (aset (.-style node) rule value)
+                           (aset (.-style node) (final/camel-case rule) value)
                            (final/update-selection @data)
 
                              ))  node-data))) )
