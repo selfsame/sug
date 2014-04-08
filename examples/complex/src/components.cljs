@@ -10,7 +10,7 @@
       )
   (:use
     [examples.complex.data :only [UID]]
-   [examples.complex.util :only [value-from-node clear-nodes! location clog px to? from? within? get-xywh element-dimensions element-offset]])
+   [examples.complex.util :only [value-from-node clear-nodes! location clog px to? from? within? get-xywh element-dimensions element-offset workspace->doc]])
    (:import [goog.ui IdGenerator]
            [goog.events EventType]))
 
@@ -138,7 +138,7 @@
     (.unbind (js/$ js/window) "mousemove" mouse-move)))
 
 (defn drag-stop [e data owner]
-  (let [loc (location e)]
+  (let [loc  (location e)]
     (sug/fire! owner (or (om/get-state owner :drag-stop) :drag-stop)
                (conj {:location loc
                       :start-location (sug/private owner :start-location)
@@ -146,7 +146,10 @@
     (unbind-drag owner)))
 
 (defn drag [e data owner]
-  (let [loc (location e)]
+  (let [loc (if (= (aget e "origin") "iframe")
+              (workspace->doc (location e))
+              (location e))]
+
     (sug/fire! owner (or (om/get-state owner :drag) :drag)
                (conj { :location loc
                        :start-location (sug/private owner :start-location)

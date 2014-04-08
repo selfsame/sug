@@ -79,8 +79,6 @@
                    (measures->string parsed)
                    (:value (first parsed)))
            unit (:unit (first parsed))
-
-
            icon (:icon rule)
 
            measured ((:measured CSS-INFO) (:name rule))
@@ -103,7 +101,7 @@
      (dom/div #js {:className root-classes}
        (dom/div #js {:className "title"}
          (dom/div #js {:className "left"}
-              (dom/p #js {:className "name"} (str rule-name (comment (rand-int 100)) ) ))
+              (dom/p #js {:className "name"} (str rule-name " " (prn-str computed)) ))
               (dom/div #js {:className "remove"
                             :onClick #(do
                                         (sug/fire! owner :style-change {:rule rule-name :value ""})
@@ -121,17 +119,18 @@
             color-value
             (dom/div nil
              (dom/input #js {:ref "input"
-                             :value (or value "")})
-             (sug/make color-picker data {:state {:value (or value "")}}))
+                             :value (or (:string (first parsed)) "")
+                             :onChange #(handle-change % data owner)
+                             :onKeyPress #(when (== (.-keyCode %) 13)
+                                            (end-edit % @data owner))})
+             (sug/make color-picker data {:state {:value (or (:string (first parsed)) "")}}))
             :else
              (dom/input #js {:ref "input"
                              :value (or value "")
                              :onChange #(handle-change % data owner)
                              :onKeyPress #(when (== (.-keyCode %) 13)
                                             (end-edit % @data owner))
-                             :onBlur (fn [e]
-                                       ;(end-edit e @data owner)
-                                       )} )))
+                             :onBlur (fn [e])})))
 
          (when measured
            (dom/div #js {:className "unit"} (or unit "")))

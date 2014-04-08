@@ -34,7 +34,9 @@
   (aget (.-style el) st))
 
 (defn css-split-value [string]
- (mapv first (re-seq #"(\S+)(\s)*" string)))
+ (mapv first (re-seq #"([\S]+\(.*?\))|[\S]+" string)))
+
+;(re-seq #"([\S]+\(.*?\))|[\S]+" "3px 5em #bada55 rgb( 34, 50, 5) url( h 2)")
 
 (defn css-values [string]
   (let [split (css-split-value string)]
@@ -49,7 +51,7 @@
             (and x y) (and w h) (and b r)) true false))
 
 
-
+(:value (first (css-values "rgb(5,2, 3)")))
 
 (defmulti get-box
   (fn [x] (cond (vector? x) :vect

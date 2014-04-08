@@ -121,4 +121,7 @@
 
 
 
-
+(defn workspace->doc [xy]
+  (let [ox (aget (.-_m js/window) "scroll_x")
+        oy (aget (.-_m js/window) "scroll_y")]
+    (mapv - xy [ox oy] )))

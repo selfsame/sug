@@ -117,9 +117,7 @@
             (k (:nodes data)) {}))
           (keys (:nodes data))))
      )})
-(count {:a 6})
-(some false? [true true nil false nil])
-(filter #(not(nil? %)) [true nil true true] )
+
 
 (sug/defcomp checkbox [data owner]
     {:render-state
@@ -194,7 +192,7 @@
          (dom/div nil
 
             ;(sug/make filtered-inline (:selected-nodes data) {})
-            (prn data)
+            (prn (aget js/window "_m"))
                   )) )})
 
 

@@ -311,7 +311,8 @@
   (let [target (.-target e)
         [sx sy] [(.-scrollLeft target) (.-scrollTop target)]]
     (om/transact! data [:interface :_m] #(conj % {:scroll_x sx :scroll_y sy}))
-    (aset js/window "_m" (clj->js  (:_m (:interface @DATA)))) ))
+    (aset (.-_m js/window) "scroll_x" sx)
+    (aset (.-_m js/window) "scroll_y" sy)))
 
 (defn doc->workspace [xy]
   (let [ox (aget (.-_m js/window) "outer_x")
