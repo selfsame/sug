@@ -3,18 +3,19 @@
   (:require
       [om.core :as om :include-macros true]
       [om.dom :as dom :include-macros true]
-      [sug.core :as sug :include-macros true]
+      [sug.core :as sug :include-macros true :refer [column row label group have havent config]]
    [examples.complex.widgets :as widgets]
    [examples.complex.final :as final]
    [cljs.core.async :as async :refer [>! <! put! chan]]
       )
   (:use
 
-   [examples.complex.data :only [UID CSS-INFO KEYS-DOWN]]
+   [examples.complex.data :only [UID CSS-INFO KEYS-DOWN MOUSE-DOWN-WORKSPACE MOUSE-TARGET
+                                 OVER-HANDLE MOUSE-DOWN MOUSE-DOWN-POS MOUSE-POS SELECTION-BOX]]
    [examples.complex.tokenize :only [tokenize-style]]
    [examples.complex.util :only [value-from-node clear-nodes! location clog px style! jq-dimensions toggle
                                  to? from? within? get-xywh element-dimensions element-offset get-xywh]]
-    [examples.complex.components :only [modal-box dom-node draggable bool-box render-count]]))
+    [examples.complex.components :only [icon drop-down modal-box dom-node draggable bool-box render-count]]))
 
 
 (enable-console-print!)
@@ -26,6 +27,7 @@
         [x y] (element-offset node)
         [w h] (element-dimensions node)]
   {:xywh [x y w h] :children (:children dom) :bg bg}))
+
 
 (sug/defcomp mini-dom [data owner]
   {:render-state
@@ -42,6 +44,7 @@
                 (map #(sug/make mini-dom data {:init-state {:depth (dec depth)
                                                       :dom (dom-to-xywh %) }}) children)
                 ))))})
+
 
 (sug/defcomp mini-map [data owner]
   {:init-state
@@ -75,125 +78,119 @@
             (when holder
               (style! holder :zoom ratio)) ))}})
 
-(filter  (fn [v] (neg? (last v))) {:a 5 :b -3 :c -4})
-
-
-(sug/defcomp node-box  [data owner]
-  {:render-state
-   (fn [_ state]
-   (let [uid (:uid data)]
-   (dom/div #js {:className "node-box"}
-          (sug/make render-count data {:state {:r (rand)}})
-          (dom/div #js {:className "head"}
-                 (dom/div #js {:className "datum uid"}
-                        (dom/p #js {:className "value"} (prn-str (:uid data)) )
-                        (dom/p #js {:className "label"} ":uid"))
-                 (dom/div #js {:className "datum tag"}
-                        (dom/p #js {:className "value"} (prn-str (:tag data)))
-                        (dom/p #js {:className "label"} ":tag"))
-                 (dom/div #js {:className "datum expanded"}
-                        (dom/p #js {:className "value"} (prn-str (:expanded data)))
-                        (dom/p #js {:className "label"} ":expand?")))
-          (dom/div #js {:className "tail"}
-                 (dom/div #js {:className "datum inline"}
-                        (dom/p #js {:className "value"} (prn-str (keys (:inline data)) ))
-                        (dom/p #js {:className "label"} ":inline"))
-                 (dom/div #js {:className "datum path"}
-                        (dom/p #js {:className "value"} (prn-str (:uid-path data)))
-                        (dom/p #js {:className "label"} ":path"))))
-
-     ))})
 
 
 
-(sug/defcomp filter-view  [data owner]
-  {:render-state
-   (fn [_ state]
 
 
-       (apply dom/div nil
-     (map (fn [k] (sug/make
-            node-box
-            (k (:nodes data)) {}))
-          (keys (:nodes data))))
-     )})
-
-
-(sug/defcomp checkbox [data owner]
-    {:render-state
-     (fn [_ state]
-        (dom/label #js {:className "bool"}
-           (dom/p nil (:text state))
-           (dom/input #js {:type "checkbox"
-                           :checked (:value state)
-                           :onChange (fn [e]
-                                       (sug/fire! owner :toggle {:type (:type state) :value (not (:value state))})
-                                       (om/set-state! owner :value (not (:value state))))})))})
-
-
-(sug/defcomp word-processor  [data owner]
-             {:init-state
-              (fn [_]
-                {:filters {:expanded {:value true :text "expanded"}
-                              :children {:value false :text "has children"}
-                              :selected {:value false :text "selected"}
-                              :styled {:value false :text "styled"}}})
-              :render-state
-              (fn [_ state]
-                (let [filters (:filters state)
-                      fkeys (set (filter (fn [k] (:value (k filters))) (keys filters)))
-                      filt-fn (fn [entry]
-                                (not (some false?
-                                  [(when (:expanded fkeys)
-                                    (if (and (:expanded entry)
-                                             (pos? (count (:children entry)))) true false))
-                                  (when (:children fkeys)
-                                    (if (pos? (count (:children entry))) true false))
-                                  (when (:selected fkeys)
-                                    (if ((:uid entry) (:selection data)) true false))
-                                  (when (:styled fkeys)
-                                    (if (pos? (count (:inline entry))) true false))])))]
-                (dom/div nil
-                         (dom/div #js {:style #js {:width 300} :float :left}
-                         (sug/make checkbox  data {:init-state (conj (:expanded filters) {:type :expanded})})
-                         (sug/make checkbox  data {:init-state (conj (:children filters) {:type :children})})
-                         (sug/make checkbox  data {:init-state (conj (:selected filters) {:type :selected})})
-                         (sug/make checkbox  data {:init-state (conj (:styled filters) {:type :styled})}))
-
-                         (sug/make
-                          filter-view
-                          data {:fn (fn [d]
-                                      (update-in d [:nodes]
-                                                 (fn [n]
-                                                   (into {} (map (fn [a]
-                                                                   (if (filt-fn a)
-                                                                     {(:uid a) a}
-                                                                     {})) (vals n)) ))))}))))
-              :on {:toggle (fn [e]
-                             (let [typ (:type e) value (:value e)]
-                               (om/set-state! owner [:filters typ :value] value) ))}})
 
  (sug/defcomp mode [data owner opts]
-  {:render-state
+  {:should-update
+   (fn [this next-props next-state]
+     (let [props (om/get-props owner)]
+       (not (= (:app-state props)
+               (:app-state next-props))))
+     true)
+   :will-mount
+   (fn [_] (om/set-state! owner :custom (or (sug/private owner :custom ){})))
+   :did-update
+   (fn [_ _ _] (sug/private! owner :custom (om/get-state owner :custom)))
+   :render-state
    (fn [_ state]
 
-       (let [app-state data]
+       (let [app-state (:app-state data)
+             mode (:active (:mode app-state))
+             wysiwyg (:wysiwyg app-state)]
          (dom/div nil
+           (sug/make render-count app-state {:react-key (:uid state)})
            (sug/make modal-box (:mode app-state) {})
-           (sug/make modal-box (:element-filter app-state) {})
-                  ) ))})
+           (if wysiwyg
+             (row (label "wysiwyg")
+                    (dom/button #js {:onClick
+                                     (fn [e]
+                                       (let [el (:el (get (:nodes @app-state) (first (:selection @app-state))))]
+                                          (om/transact! data [:app-state :wysiwyg] #(identity false))
+                                          (.remove_focus (.-wysiwyg (.-tools js/window)) )
+                                          (sug/fire! owner :dom-restructure {:root (first (:selection @app-state))})
+                                         ))} "done"))
+           (row
+            (if (= "edit" mode)
+             (row
+              (config :draw-opts
+                      (column 33
+                              (label "options")
+                              (sug/make bool-box (:show-margin (:edit-settings app-state)) {})
+                              (sug/make bool-box (:show-padding (:edit-settings app-state)) {})))
+              (config :alter-with (column 66
+                      (label "alter-with")
+                      (sug/make modal-box (:aspect (:edit-settings app-state)) {}))))
+             (row
+               (config :position
+                       (column 33
+                      (label "position")
+                        (sug/make modal-box (:create-position (:create-settings app-state)) {})))
+               (config :type
+                       (column 66
+                      (label "type")
+                        (sug/make modal-box (:create-type (:create-settings app-state)) {})))))
 
+             (when (= 1 (count (:selection app-state)))
+               (row (label "wysiwyg")
+                    (dom/button #js {:onClick
+                                     (fn [e]
+                                       (let [el (:el (get (:nodes @app-state) (first (:selection @app-state))))]
+                                          (om/transact! data [:app-state :wysiwyg] #(identity el))
+                                          (.focus_on (.-wysiwyg (.-tools js/window)) (js/$ el)) ))} "start"))))
+                  ))))})
+
+
+
+ (sug/defcomp options [data owner opts]
+  {:should-update
+   (fn [this next-props next-state]
+     (let [props (om/get-props owner)]
+       (not (= (:app-state props)
+               (:app-state next-props)))
+       true))
+   :will-mount
+   (fn [_] (om/set-state! owner :custom (or (sug/private owner :custom ){})))
+   :did-update
+   (fn [_ _ _] (sug/private! owner :custom (om/get-state owner :custom)))
+   :render-state
+   (fn [_ state]
+
+       (let [app-state (:app-state data)
+             rulers (:rulers (:options app-state))]
+
+             (row
+              (config :rulers
+              (column 33
+                      (label "rulers")
+                      (sug/make bool-box (:show rulers) {})
+                      (sug/make bool-box (:show-guides rulers) {})
+                      (sug/make bool-box (:snap-guides rulers) {})))
+              (config :interface
+                (column 66
+                      (label "interface")
+                      )))))
+             })
 
 
 (sug/defcomp history [data owner]
-  {:render-state
+  {:should-update
+   (fn [this next-props next-state]
+     (let [props (om/get-props owner)]
+       (not (= (:app-state props)
+               (:app-state next-props)))))
+   :render-state
    (fn [_ state]
        (let []
          (dom/div nil
+            (sug/make render-count (:app-state data) {:react-key (:uid state)})
+            (dom/code nil
+                      (dom/button #js {:onClick #(sug/fire! owner :save-state {})} "save state"))
 
-            ;(sug/make filtered-inline (:selected-nodes data) {})
-            (prn (aget js/window "_m"))
-                  )) )})
+                  )))})
 
 
 (defn select! [uid-set uid]
@@ -202,23 +199,38 @@
     #{uid}))
 
 (sug/defcomp outliner [data owner opts]
-  {:render-state
+  {:should-update
+   (fn [this next-props next-state]
+     (let [props (om/get-props owner)]
+       (not (= (:app-state props)
+               (:app-state next-props)))))
+   :render-state
    (fn [_ state]
-      (let [app-state data
+      (let [app-state (:app-state data)
             selection (:selection app-state)
             mouse-target (:mouse-target app-state)
             cname (str "select-" (:active (:element-filter app-state)) " " (when (:moving state) "moving"))]
         (apply dom/div #js {:className cname :id "outliner"}
-          (sug/make-all dom-node (:dom app-state) {:state {:selection selection :mouse-target mouse-target} }))))
+          (sug/make render-count app-state {:react-key (:uid state)})
+           (for [child (:dom app-state)]
+             (sug/make dom-node child {:opts {:nodes (:nodes app-state)}
+                                       :state {:selection (:selection app-state)
+                                               :mouse-target (:mouse-target app-state)}})))))
    :on {:select-node
-        (fn [e] (om/transact! data [:selection] #(select! % (:uid e))))
+        (fn [e] (let [uid (:uid e)
+                      nodes (:nodes (:app-state @data))
+                      node (get nodes uid)
+                      uid-path (:uid-path node)
+                      locked (filter :locked (map #(get nodes %) uid-path))]
+                  (when (empty? locked)
+                      (om/transact! data [:app-state :selection] #(select! % (:uid e))))))
         :collapsing-nodes
         (fn [e] (let [target (:target e)
                       uid (:uid target)
                       value (not (:expanded target))
                       nodes (:nodes e)]
-                  (om/transact! data [:nodes uid :expanded] not)
-                  (om/transact! data [:selection] #(apply disj % nodes) )))
+                  ;(om/transact! data [:app-state :nodes uid :expanded] not)
+                  (om/transact! data [:app-state :selection] #(apply disj % nodes) )))
         :drag-nodes-start (fn [e]
                             (when (:selected e)
                               (final/set-cursor "n-resize")
@@ -227,34 +239,103 @@
         :drag-nodes-stop (fn [e]
                            (when (:selected e)
                            (final/set-cursor "default")
-                           (om/set-state! owner :moving false))) }})
+                           (om/set-state! owner :moving false)))
+        :toggle-hide
+        (fn [e] (let [uid (:uid e)
+                      node (get (:nodes (:app-state @data)) uid)
+                      el (:el node)]
+                  (.toggleClass (js/$ el) "__hidden")
+                  (om/transact! data [:app-state :nodes uid :hidden] not)))
 
+        :toggle-lock
+        (fn [e] (let [uid (:uid e)
+                      node (get (:nodes (:app-state @data)) uid)
+                      el (:el node)]
+                  (.toggleClass (js/$ el) "__locked")
+                  (om/transact! data [:app-state :nodes uid :locked] not)))}})
 
 
 
 (sug/defcomp style [data owner opts]
-             {:render-state
+             {:should-update
+              (fn [this next-props next-state]
+                (let [props (om/get-props owner)]
+                  (not (= (:app-state props)
+                          (:app-state next-props))))
+                true)
+              :will-mount
+              (fn [_] (om/set-state! owner :custom (or (sug/private owner :custom ){})))
+              :did-update
+              (fn [_ _ _] (sug/private! owner :custom (om/get-state owner :custom)))
+              :render-state
               (fn [_ state]
 
-                (let [select (:style-select data)
-                      pseudo (:style-use-pseudo data)
-                      pseudo-opts (:style-pseudo data)
-                      css-rules (:css-rules CSS-INFO)]
+                (let [app-state (:app-state data)
+                      select (:style-select app-state)
+                      pseudo (:style-use-pseudo app-state)
+                      target-breakpoint (:style-target-breakpoint app-state)
+                      pseudo-opts (:style-pseudo app-state)
+                      pseudo-element (:style-use-pseudo-element app-state)
+                      css-rules (:css-rules CSS-INFO)
+                      hide-options (or (:hide-options state) false)]
 
-                  (dom/div #js {:className (str "options" (when (= "create" (:active (:mode data))) " disabled"))}
-                           (sug/make modal-box select {})
-                           (sug/make bool-box pseudo {})
-                           (sug/make modal-box pseudo-opts {:state {:disabled (not (:value pseudo))}})
+                  (dom/div #js {:className (str "options" (when (or
+                                                                 (= "create" (:active (:mode app-state)))
+                                                                 (:wysiwyg app-state)) " disabled"))}
+                           ;(sug/make render-count data {:react-key (:uid state)})
+
+;;                            (have :customize-tool (sug/make icon data {:opts {:className "config"
+;;                                                                              :onClick #(om/update-state! owner [:custom :target] not )}
+;;                                                                       :state {:x (+ 0 (have [:custom :target] -16))
+;;                                                                               :y -80}}))
+                           (config :target
+                             (row (column 20
+                                  (label "target"))
+                                  (column 80
+                                  (sug/make modal-box select {}))))
+
+                           (config :advanced
+                           (dom/div nil
+                                    (dom/div #js {:className "dropdown" :onClick #(om/update-state! owner [:hide-options] not )}
+                                             (sug/make icon data {:state {:x (if hide-options 0 -16) :y -96}})
+                                             (dom/span nil "advanced"))
+
+                                    (when-not hide-options
+                                      (row
+                                       (if (= "selection" (:active select))
+                                         (row (group
+                                               (column 66
+                                                       (sug/make bool-box pseudo {})
+                                                       (sug/make modal-box pseudo-opts {:state {:disabled (not (:value pseudo))}}))
+                                               (column 33
+
+                                                       (sug/make bool-box pseudo-element {})
+                                                       (sug/make modal-box (:style-pseudo-element app-state) {:state {:disabled (not (:value pseudo-element))}})
+                                                       (sug/make bool-box target-breakpoint {})
+                                                       (dom/code nil "todo"))))
+                                         (column 66
+                                                 (label "css rules")))))))
+
+
+
+
                            (apply dom/div #js {:className "rules"}
                                   (map (fn [rule]
-                                         (sug/make widgets/style-widget   data
-                                                   {:init-state {:rule rule}})) css-rules)))))
+                                         (config (:name rule)
+                                         (sug/make widgets/style-widget  data
+                                                   {:fn (fn [col]
+                                                          (let [pass1 (update-in col [:app-state] #(select-keys % [:selection :nodes]))]
+
+                                                          (update-in pass1 [:app-state :nodes]
+                                                                     #(select-keys % (:selection app-state)))))
+                                                    :init-state {:rule rule}}))) css-rules)))))
               :on {:style-change
                    (fn [e]
-                     (let [rule (:rule e)
+                     (let [app-state (:app-state @data)
+                           rule (:rule e)
                            value (:value e)
-                           uids (:selection @data)
-                           node-data (vals (select-keys (:nodes @data) uids))]
+                           uids (:selection app-state)
+                           node-data (vals (select-keys (:nodes app-state) uids))]
 
                        (dorun
                         (map
@@ -262,13 +343,14 @@
                            (let [node (:el entry)
                                  uid (:uid entry)]
                            (aset (.-style node) (final/camel-case rule) value)
-                           (final/update-selection @data)
+                           (final/update-selection app-state)
 
                              ))  node-data))) )
                    :style-set-done
                    (fn [e]
-                     (let [uids (:selection @data)
-                           node-data (vals (select-keys (:nodes @data) uids))]
+                     (let [app-state (:app-state @data)
+                           uids (:selection app-state)
+                           node-data (vals (select-keys (:nodes app-state) uids))]
 
                        (dorun
                         (map
@@ -278,15 +360,25 @@
                            (om/transact! data [:nodes uid :inline ] #(tokenize-style node)))) node-data)))) }})
 
 (defn tool-lookup [view data]
-  (let [comps {:mode mode :history history :outliner outliner
-               :style style :mini-map mini-map :word-processor word-processor}
+  (let [comps {:mode mode :history history :outliner outliner :options options
+               :style style :mini-map mini-map}
         lenses {:mode data
                 :history data
                 :outliner data
                 :style data
+                :options data
                 :mini-map (:dom data)
-                :word-processor data}]
-    [(view comps) (view lenses)]))
+                :word-processor data}
+        fns {:mode  [:mode :edit-settings :create-settings :wysiwyg :selection :nodes]
+             :history  [:selection :mouse-target :element-filter :nodes]
+             :outliner [:dom :selection :mouse-target :element-filter :nodes :element-filter :wysiwyg]
+             :style [:style-select :style-use-pseudo :style-pseudo
+                     :style-use-pseudo-element :style-pseudo-element
+                     :style-target-breakpoint :mode :selection :nodes :wysiwyg]
+             :options [:options]
+             :mini-map []
+             :word-processor []}]
+    [(view comps) (view lenses) (view fns)]))
 
 
 
@@ -302,6 +394,7 @@
     (fn [_ state]
 
        (let [view (:view state)
+             str-view (apply str (rest (str view)))
              tabbed (:tabbed state)
              [x y w h] (or (:xywh state) [(:left state) (:top state) (:width state) (:height state)])
              style (if (:docked state)
@@ -309,12 +402,24 @@
                      #js {:height (px h) :width (px w) :top (px y) :left (px x)})]
 
          (dom/div #js {:className "tool" :ref "tool" :style style}
+
             (sug/make draggable data {:opts {:className (str "title " (when tabbed "tabbed "))
-                                            :content (str view "  "  "  " (:uid state))} ;(aget owner "_rootNodeID")) }
+                                            :content ""} ;(aget owner "_rootNodeID")) }
 
                                      :init-state {:message {:idx (:idx state)}
                                                   :drag-start :remember
                                                   :drag (if (:docked state) :drag-docked :drag-free)}})
+
+
+           (dom/div #js {:className "title-overlay"}
+               (sug/make drop-down data {:state {:view view} :opts {:options (:views (:app-state data))}})
+               (dom/p nil str-view)
+
+               (sug/make icon data {:state {:x -48 :y -64}})
+               (sug/make icon data {:state {:x -32 :y -64}})
+               (let [[cmx cmy] (if (:customize-tool state) [-16 -64] [-64 -48])]
+               (sug/make icon data {:state {:x cmx :y cmy}
+                                    :opts {:onClick #(om/update-state! owner :customize-tool not)}})))
             (when tabbed
               (apply dom/div #js {:className "tabs"}
                        (map (fn [tab] (dom/div #js {:className (str "label " (when (= view tab) "active "))
@@ -322,17 +427,23 @@
 
             (dom/div #js {:className "view"
                           :id (if (= view :outliner) "outliner_view" "")}
-              (when-let [[component lense] (tool-lookup view data)]
-                (sug/make component lense {})))
+              (when-let [[component lense filter-keys] (tool-lookup view data)]
+                (sug/make component lense {:init-state {:uid (:uid state) :custom {}}
+                                           :react-key (:uid state)
+                                           :state {:customize-tool (:customize-tool state)}
+                                           :fn (fn [col] (update-in col [:app-state] #(select-keys % filter-keys)))})))
 
             (when-not (:docked state)
               (sug/make draggable data {:opts {:className "resize"}
                                      :init-state {:drag-start :remember
-                                                  :drag :drag-resize}})))))
+                                                  :drag :drag-resize}}))
+             )))
 
 
    :on {:tool-resize (fn [e]) ;use this channel to broadcast resize to descendants
-
+        :set-view
+        (fn [e]
+          (om/set-state! owner :view (:view e)))
         :drag-free
         (fn [e]
           (let [node (om/get-node owner "tool")

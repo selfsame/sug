@@ -50,6 +50,8 @@ width:10px;
 height: 10px;
 margin-right: 4px;}
 
+
+
 .exp-box.expanded{
   cursor:pointer;
   background-image: url(../img/metric_expanded.png);}
@@ -59,13 +61,42 @@ margin-right: 4px;}
   background-image: url(../img/metric_collapsed.png);}
 
 
+.outliner_node > div.icon{
+position:absolute;
+right:0px;
+cursor:pointer;
+opacity:0;
+z-index:9999;}
+
+.outliner_node > div.icon:nth-of-type(2){
+  right:24px;}
 
 
+.outliner_node:hover > div.icon{
+  opacity:.3;
+}
+
+#outliner .outliner_node.hidden > div.icon:nth-of-type(1){ opacity:1.0;}
+#outliner .outliner_node.locked > div.icon:nth-of-type(2){ opacity:1.0;}
 
 #outliner{
   background-image: url(../img/outliner_background.png);
   padding-left: 7px;
 }
+
+
+#outliner .outliner_node.hidden span{opacity:.5;}
+.outliner_node.hidden div.icon:nth-of-type(1){ opacity:.5;}
+
+
+
+#outliner .outliner_node.locked{
+  color:#C36868;
+  opacity: .7;}
+
+
+
+.outliner_node.locked div.icon:nth-of-type(2){ opacity:.5;}
 
 .outliner_background{
   background-color:white;

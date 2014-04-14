@@ -1,6 +1,57 @@
 (ns sug.core)
 
 
+(defmacro column ([n & b]
+  (let [width (if (number? n) (str n "%") "100%")
+        body (if (number? n) b (cons n b)) ]
+  `(~'dom/div (~'clj->js {:className "ui-column"
+                          :style (~'clj->js {:width ~width}) }) ~@body))))
+
+(defmacro row
+  ([& body]
+  `(~'dom/div (~'clj->js {:className "ui-row clearfix"}) ~@body)))
+
+(defmacro label
+  ([& body]
+  `(~'dom/p (~'clj->js {:className "ui-label"}) ~@body)))
+
+(defmacro group
+  ([& body]
+  `(~'dom/div (~'clj->js {:className "ui-group clearfix"}) ~@body)))
+
+
+(defmacro have [k & body]
+  `(let [~'state (~'om/get-state ~'__owner ~k)
+         ~'thing (get ~'state ~k)]
+     (when ~'state (do ~@body) )))
+
+(defmacro havent [k & body]
+  `(let [~'state (~'om/get-state ~'__owner ~k)
+         ~'thing (get ~'state ~k)]
+     (when-not ~'state (do ~@body) )))
+
+
+(defmacro config [k & body]
+  `(let [~'state (~'om/get-state ~'__owner)
+         ~'c-edit (get-in ~'state [:customize-tool])
+         ~'c-val (get-in ~'state [:custom ~k])
+         ~'tog (~'sug/make ~'icon ~'data
+                           {:opts {:className "config"
+                                   :onClick #(~'om/update-state! ~'__owner [:custom ~k] not )}
+                            :state {:x (if ~'c-val 0 -16 ) :y -80}})]
+
+
+
+     (if ~'c-val
+       (when ~'c-edit
+         (~'dom/div nil ~'tog (~'dom/div (~'clj->js {:className "faded"}) ~@body)))
+       (if ~'c-edit
+         (~'dom/div nil ~'tog ~@body)
+         ~@body) )
+
+     ))
+
+
 (defmacro make
   ([func cursor data]
   `(om/build ~func ~cursor

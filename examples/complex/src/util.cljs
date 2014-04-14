@@ -125,3 +125,13 @@
   (let [ox (aget (.-_m js/window) "scroll_x")
         oy (aget (.-_m js/window) "scroll_y")]
     (mapv - xy [ox oy] )))
+
+
+(defn expanded-node [nodes uid]
+  (let [node (get nodes uid)
+        uid-path (:uid-path node)
+        pathed (map (fn [uid] (get nodes uid)) uid-path)
+        result (or
+                (first (filter #(not (:expanded %)) pathed))
+                (last pathed))]
+    (:uid result)))

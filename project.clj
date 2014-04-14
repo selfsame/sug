@@ -10,9 +10,11 @@
                  [org.clojure/clojurescript "0.0-2173" :scope "provided"]
                  [org.clojure/core.async "0.1.267.0-0d7780-alpha" :scope "provided"]
                  [domina "1.0.2-SNAPSHOT"]
-                 [om "0.5.2"]]
+                 [om "0.5.3"]
+                 ]
 
   :plugins [[lein-cljsbuild "1.0.1"]]
+
 
   :cljsbuild {:builds
               [{:id "dev"

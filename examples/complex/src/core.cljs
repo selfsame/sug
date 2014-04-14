@@ -14,9 +14,9 @@
 
     [examples.complex.data :only [UID GLOBAL INTERFACE MOUSE-TARGET KEYS-DOWN
                                   OVER-HANDLE MOUSE-DOWN-POS MOUSE-DOWN MOUSE-POS MOUSE-DOWN-WORKSPACE]]
-    [examples.complex.util :only [value-from-node clear-nodes! location clog px to? from? within? style!
+    [examples.complex.util :only [expanded-node value-from-node clear-nodes! location clog px to? from? within? style!
                      descendant? get-xywh element-dimensions element-offset exclude toggle]]
-    [examples.complex.components :only [modal-box dom-node draggable]])
+    [examples.complex.components :only [icon modal-box dom-node draggable]])
   (:import
    [goog.events EventType]))
 
@@ -68,7 +68,15 @@
 
 
 
-
+(sug/defcomp dialogue
+  [data owner opts]
+  {:render-state
+    (fn [_ state]
+      (let [k (om/value (:key data))]
+      (dom/div #js {:className "menu_option"
+                    :onClick #(commands/route-menu k)}
+         (dom/span nil (:name data))
+         (dom/span #js {:className "binding"} (:key-bind data)))))})
 
 
 
@@ -80,6 +88,8 @@
       (let [k (om/value (:key data))]
       (dom/div #js {:className "menu_option"
                     :onClick #(commands/route-menu k)}
+         (when (:icon data)
+           (sug/make icon data {:state {:x (first (:icon data)) :y (last (:icon data))}}))
          (dom/span nil (:name data))
          (dom/span #js {:className "binding"} (:key-bind data)))))})
 
@@ -92,12 +102,12 @@
     (fn [_]
       (dom/div #js {:className "menubar"}
            (into-array
-            (map (fn [k]
+            (map (fn [menu]
                    (dom/div #js {:className "menu"}
-                      (dom/p nil (str k))
+                      (dom/p nil (apply str (rest (str (:key menu)))))
                         (apply dom/div #js {:className "menu_box"}
-                            (sug/make-all menu-option (k data) {} ))))
-                 (keys data) ))))})
+                            (sug/make-all menu-option (:items menu) {} ))))
+                 data) )))})
 
 
 (sug/defcomp tool-shelf
@@ -118,7 +128,7 @@
                         :let [tool (nth stack idx)
                               tool-height (nth (:spacing state) idx)]]
 
-                           (sug/make tools/toolbox (:app-state data) {:react-key (:uid tool)
+                           (sug/make tools/toolbox data {:react-key (:uid tool)
                                                          :init-state {:idx idx
                                                                       :uid (:uid tool)
                                                                       :view (:view tool)
@@ -307,10 +317,10 @@
 
 
 
-(defn update-scroll [e data owner]
+(defn update-scroll [e]
   (let [target (.-target e)
         [sx sy] [(.-scrollLeft target) (.-scrollTop target)]]
-    (om/transact! data [:interface :_m] #(conj % {:scroll_x sx :scroll_y sy}))
+    (swap! DATA update-in [:interface :_m] #(conj % {:scroll_x sx :scroll_y sy}))
     (aset (.-_m js/window) "scroll_x" sx)
     (aset (.-_m js/window) "scroll_y" sy)))
 
@@ -320,9 +330,12 @@
     (mapv - xy [ox oy] [16 16])))
 
 
-(defn check-mouseup [e data owner]
+
+(defn check-mouseup [e]
   (let [target (.-target e)
         uid (.-uid target)
+        nodes (get-in @DATA [:wrapper :app-state :nodes])
+        expanded-uid (expanded-node nodes uid)
         [x y] (doc->workspace [(.-clientX e) (.-clientY e)])]
     (swap! MOUSE-DOWN #(identity false))
     (swap! MOUSE-DOWN-WORKSPACE #(identity false))
@@ -330,13 +343,12 @@
     (let [[dx dy] (mapv - @MOUSE-POS @MOUSE-DOWN-POS)]
         (if (and (< -2 dx 2)(< -2 dy 2))
            (when uid
-             (om/transact! data [:wrapper :app-state :selection] #(tools/select! % uid)))
+             (swap! DATA update-in [:wrapper :app-state :selection] #(tools/select! % expanded-uid)))
            (when @OVER-HANDLE
              (final/finalize-handle-interaction! DATA))))))
 
-(defn check-mousedown [e data owner]
+(defn check-mousedown [e]
   (let [target (.-target e)
-        uid (.-uid target)
         [x y] (doc->workspace [(.-clientX e) (.-clientY e)])]
     (when (descendant? target (js/workspace "html"))
       (swap! MOUSE-DOWN-WORKSPACE #(identity true)))
@@ -345,33 +357,60 @@
     (swap! MOUSE-POS #(identity [x y]))))
 
 
-(defn check-mousemove [e data owner]
+
+
+(defn check-mousemove [e]
   (let [target (.-target e)
         uid (.-uid target)
         uid-path (.-uid_path target)
+        nodes (get-in @DATA [:wrapper :app-state :nodes])
+        expanded-uid (expanded-node nodes uid)
         [x y] (doc->workspace [(.-clientX e) (.-clientY e)])]
+
     (swap! MOUSE-POS #(identity [x y]))
     (if (not @MOUSE-DOWN)
         (final/check-over-resize e [x y]))
     (if @MOUSE-DOWN-WORKSPACE
         (if @OVER-HANDLE
           (final/handle-interaction! DATA))
-      (when-not (and @MOUSE-DOWN (= @MOUSE-TARGET uid))
-            (swap! MOUSE-TARGET #(identity uid))
+      (when-not (and @MOUSE-DOWN (= @MOUSE-TARGET expanded-uid))
+            (swap! MOUSE-TARGET #(identity expanded-uid))
+            ;(swap! DATA update-in [:wrapper :app-state :mouse-target] #(identity uid))
             (final/update-selection (get-in @DATA [:wrapper :app-state]))
 
         ))))
 
+(defn set-contains-col [s col]
+  (not-any? nil? (map s col)))
+
+(defn route-key-commands [code data owner]
+  (let [commands (:commands @data)
+        keys-down @KEYS-DOWN
+        result (filter
+                (fn [[k v]]
+                  (and
+                   (= code (:key-down v))
+                   (set-contains-col keys-down (:key-held v)))) commands)]
+
+    (when (first result)
+      (let [command (first result)
+            ck (first command)
+            cv (last command)]
+      (prn :COMMAND (first result))
+      (sug/fire! owner ck {:down keys-down} )))))
 
 (defn handle-keydown [e data owner]
   (let [target (.-target e)
         code (.-keyCode e)]
+    (prn code)
+    (route-key-commands code data owner)
     (swap! KEYS-DOWN conj code)))
 
 (defn handle-keyup [e data owner]
   (let [target (.-target e)
         code (.-keyCode e)]
     (swap! KEYS-DOWN disj code)))
+
 
 
 (defn filter-data [data]
@@ -386,18 +425,27 @@
           (fn [x] {:inline inline
                    :selected-nodes (or (vals filtered) [])}))))
 
+
+ (defn alter-selection [e data alter-fn]
+   (let [app-state (:app-state (:wrapper @data))
+         selection (:selection app-state)
+         nodes (:nodes app-state)
+         s-nodes (select-keys nodes selection)
+         altered-uids (flatten (map alter-fn (vals s-nodes)))
+         shift (contains? (:down e) 16)]
+     (prn (vals s-nodes))
+     (om/transact! data [:wrapper :app-state :selection] (if shift
+                                                           #(apply conj % altered-uids)
+                                                           #(set altered-uids))) ))
+
+
 (sug/defcomp dom-app
   [data owner opts]
 
   {:will-mount
    (fn [_]
-     (.keydown (js/$ js/window)  #(handle-keydown % data owner))
-     (.keyup (js/$ js/window)  #(handle-keyup % data owner))
-     (.mousedown (js/$ js/window) #(check-mousedown % data owner))
-     (.mousemove (js/$ js/window) #(check-mousemove % data owner))
-     (.on (js/$ js/window) "mouseup" #(check-mouseup % data owner))
-     (doto (.getElementById js/document "doc-scroll")
-            (events/listen EventType.SCROLL #(update-scroll % data owner))))
+      (.keydown (js/$ js/window)  #(handle-keydown % data owner))
+        (.keyup (js/$ js/window)  #(handle-keyup %  data owner)))
    :will-update
    (fn [_ next-props next-state]
      (let [state (om/get-render-state owner)]))
@@ -411,20 +459,44 @@
                                         :window_h (.-innerHeight js/window)}))))))
    :render
     (fn [_]
-        (sug/make interface data {}))})
+        (sug/make interface data {}))
+   :on {:dom-restructure
+        (fn [e]
 
+          (let [{:keys [dom nodes]} (tokenize/remake data)]
+            (om/transact! data [:wrapper :app-state] #(conj % {:nodes nodes :dom dom})) ))
+        :toggle-app-mode
+        (fn [e] (om/transact! data [:wrapper :app-state :mode :active]
+                              #(if (= % "edit") "create" "edit")))
+        :select-children
+        (fn [e] (alter-selection e data :children))
+        :select-parent
+        (fn [e] (alter-selection e data :parent))
+
+        }})
 
 
 
 (js/$ (fn []
+  (def NODES (atom {}))
   (def DATA (atom (update-in INTERFACE [:wrapper :app-state] #(conj %
-                                                                  {:dom [(tokenize/make (first (.toArray (js/$$ "body"))) [])]
-                                                                   :nodes @tokenize/NODES}))))
+                                                                  {:dom [(tokenize/make (first (.toArray (js/$$ "body"))) [] NODES)]
+                                                                   :nodes @NODES}))))
 
 
 
 
   (om/root dom-app DATA {:target (.getElementById js/document "main")})
+
+
+        (.mousedown (js/$ js/window) #(check-mousedown %))
+
+        (.bind (js/$ js/window) "mousemove" check-mousemove)
+        (.on (js/$ js/window) "mouseup" #(check-mouseup %))
+
+
+        (doto (.getElementById js/document "doc-scroll")
+          (events/listen EventType.SCROLL #(update-scroll %)))
 
   (aset js/window "_m" (clj->js  (:_m (:interface @DATA))))
   (.init (.-tracking (_t)))

@@ -30,11 +30,7 @@ window.doc_zoom = 1.0
 
 $(ifrm).ready ->
 	$('#iframe_proxy iframe').contents().on 'mousedown mouseup mousemove keydown keyup keypress', (e)->
-	    #console.log e.type
-	    #if window.prevent_iframe_doc_mouse_event_sync is 1
-	    #  window.prevent_iframe_doc_mouse_event_sync = 0
-	    #  return
-	    #$('#debug').find('.imm').html e.clientX
+
 	    e.origin = "iframe"
 	    e.clientX += _m.outer_x + _m.ruler_w
 	    e.clientY += _m.outer_y + _m.ruler_w

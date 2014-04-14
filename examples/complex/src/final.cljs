@@ -51,7 +51,7 @@
             (and x y) (and w h) (and b r)) true false))
 
 
-(:value (first (css-values "rgb(5,2, 3)")))
+(first (css-values "rgb(5,2, 3)"))
 
 (defmulti get-box
   (fn [x] (cond (vector? x) :vect
@@ -148,61 +148,66 @@
 
 
 (defn update-selection [data]
-  (let [app data
-        _m (js->clj (.-_m js/window))
-        selection (vec (:selection app))
-        nodes (:nodes app)
-        elements  (mapv :el (vals (select-keys nodes selection)))
-        workspace-xy [(get _m "outer_x") (get _m "outer_y")]
-        scroll [(get _m "scroll_x") (get _m "scroll_y")]
-        off  (mapv - [16 16] scroll)
-        boxes (mapv
-               (fn [el]
-                 (let[[x y] (element-offset el)
-                      [w h] (element-dimensions el)
-                      ml (or (get-measure-style el "margin-left") 0)
-                      mt (or (get-measure-style el "margin-top") 0)
-                      mr (or (get-measure-style el "margin-right") 0)
-                      mb (or (get-measure-style el "margin-bottom") 0)
-                      pl (or (get-measure-style el "padding-left") 0)
-                      pt (or (get-measure-style el "padding-top") 0)
-                      pr (or (get-measure-style el "padding-right") 0)
-                      pb (or (get-measure-style el "padding-bottom") 0)]
-                   (conj (get-box [x y w h]) {:ml ml :mt mt :mr mr :mb mb
-                                              :pl pl :pt pt :pr pr :pb pb})
 
-                   )) elements)
-        bounds (bounds boxes)]
+    (let [app data
+          _m (js->clj (.-_m js/window))
+          edit-mode (not (or (:wysiwyg data) (= "create" (:active (:mode data)))))
+          selection (if edit-mode (vec (:selection app)) [])
+          nodes (:nodes app)
+          rulers (:rulers (:options app))
+          elements  (mapv :el (vals (select-keys nodes selection)))
+          workspace-xy [(get _m "outer_x") (get _m "outer_y")]
+          scroll [(get _m "scroll_x") (get _m "scroll_y")]
+          off  (mapv - [16 16] scroll)
+          boxes (mapv
+                 (fn [el]
+                   (let[[x y] (element-offset el)
+                        [w h] (element-dimensions el)
+                        ml (or (get-measure-style el "margin-left") 0)
+                        mt (or (get-measure-style el "margin-top") 0)
+                        mr (or (get-measure-style el "margin-right") 0)
+                        mb (or (get-measure-style el "margin-bottom") 0)
+                        pl (or (get-measure-style el "padding-left") 0)
+                        pt (or (get-measure-style el "padding-top") 0)
+                        pr (or (get-measure-style el "padding-right") 0)
+                        pb (or (get-measure-style el "padding-bottom") 0)]
+                     (conj (get-box [x y w h]) {:ml ml :mt mt :mr mr :mb mb
+                                                :pl pl :pt pt :pr pr :pb pb})
 
-  (clear-except-rulers)
+                     )) elements)
+          bounds (bounds boxes)]
+
+       (if (:value (:show rulers))
+        (clear-except-rulers)
+        (clear-canvas))
 
 
-  (dorun (for [b boxes
-               :let [{:keys [x y w h ml mt mr mb pl pt pr pb]} (offset b off)
-                     [mx my] (mapv - [x y] [ml mt])
-                     [mw mh] (mapv + [w h] [ml mt] [mr mb])
-                     [px py] (mapv + [x y] [pl pt])
-                     [pw ph] (mapv - [w h] [pl pt] [pr pb])]]
-    (do
-        (box mx my mw mh {:lineWidth 1 :fillStyle "rgba(113, 183, 248, 0)" :strokeStyle "rgb(255, 144, 0)"})
-        (box x y w h nil)
-        (box px py pw ph {:lineWidth 1 :fillStyle "rgba(0,0,0,0)" :strokeStyle "rgb(0, 144, 255)"}))))
+      (dorun (for [b boxes
+                   :let [{:keys [x y w h ml mt mr mb pl pt pr pb]} (offset b off)
+                         [mx my] (mapv - [x y] [ml mt])
+                         [mw mh] (mapv + [w h] [ml mt] [mr mb])
+                         [px py] (mapv + [x y] [pl pt])
+                         [pw ph] (mapv - [w h] [pl pt] [pr pb])]]
+               (do
+                 (box mx my mw mh {:lineWidth 1 :fillStyle "rgba(113, 183, 248, 0)" :strokeStyle "rgb(255, 144, 0)"})
+                 (box x y w h nil)
+                 (box px py pw ph {:lineWidth 1 :fillStyle "rgba(0,0,0,0)" :strokeStyle "rgb(0, 144, 255)"}))))
 
-    (when (keyword? @MOUSE-TARGET)
-      (let [el (:el (@MOUSE-TARGET nodes))
-            [x y] (mapv + (element-offset el) off)
-            [w h] (element-dimensions el)
+      (when (and edit-mode (keyword? @MOUSE-TARGET))
+        (let [el (:el (@MOUSE-TARGET nodes))
+              [x y] (mapv + (element-offset el) off)
+              [w h] (element-dimensions el)
 
-            hover-target-box (get-box [x y w h])]
-        (box x y w h {:lineWidth 2 :fillStyle "rgba(113, 183, 248, 0)" :strokeStyle "rgba(0, 0, 248, .5)"})))
+              hover-target-box (get-box [x y w h])]
+          (box x y w h {:lineWidth 2 :fillStyle "rgba(113, 183, 248, 0)" :strokeStyle "rgba(0, 0, 248, .5)"})))
 
-    (let [{:keys [x y b r w h]} (offset bounds off)] (box x y w h "red")
-    (aset (_t) "select" (clj->js  {:selected_elements  elements :selection_box [(mapv - [x y] off)
-                                                                                (mapv - [r b] off)]}))
-    (swap! SELECTION-BOX #(identity [(mapv + (mapv - [x y] off))
-                                     (mapv + (mapv - [r b] off)) ])))
+      (let [{:keys [x y b r w h]} (offset bounds off)] (box x y w h "red")
+        (aset (_t) "select" (clj->js  {:selected_elements  elements :selection_box [(mapv - [x y] off)
+                                                                                    (mapv - [r b] off)]}))
+        (swap! SELECTION-BOX #(identity [(mapv + (mapv - [x y] off))
+                                         (mapv + (mapv - [r b] off)) ])))
 
-    (draw-tracking)))
+      (draw-tracking)))
 
 
 

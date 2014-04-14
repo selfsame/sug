@@ -8,7 +8,7 @@
    [cljs.core.async :as async :refer [>! <! put! chan]])
   (:use
    [examples.complex.tokenize :only [tokenize-style]]
-   [examples.complex.components :only [modal-box dom-node draggable bool-box]]
+   [examples.complex.components :only [render-count modal-box dom-node draggable bool-box]]
    [examples.complex.data :only [UID CSS-INFO]]
    [examples.complex.util :only [value-from-node clear-nodes! location multiple?
                                  clog px to? from? within? get-xywh element-dimensions element-offset get-xywh]]))
@@ -61,7 +61,7 @@
      (let [rule (:rule state)
            rule-name (kstring (:name rule))
 
-           app (om/value data)
+           app (om/value (:app-state data))
            nodes (:nodes app)
            selection (:selection app)
            filtered (conj {} (select-keys nodes selection ))
@@ -97,11 +97,11 @@
                                (when compact "compact ")
                                (when color-value "color-value "))]
 
-
      (dom/div #js {:className root-classes}
        (dom/div #js {:className "title"}
+         ;(sug/make render-count data {:react-key (:name rule)})
          (dom/div #js {:className "left"}
-              (dom/p #js {:className "name"} (str rule-name " " (prn-str computed)) ))
+              (dom/p #js {:className "name"} (str rule-name) ))
               (dom/div #js {:className "remove"
                             :onClick #(do
                                         (sug/fire! owner :style-change {:rule rule-name :value ""})
