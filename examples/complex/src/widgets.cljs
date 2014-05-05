@@ -16,8 +16,7 @@
 (defn kstring [k]
   (apply str (rest (str k))))
 
-(defn handle-change [e data owner]
-  (prn "handle-change"))
+(defn handle-change [e data owner])
 
 (defn end-edit [e data owner]
   (let [state (om/get-state owner)
@@ -25,8 +24,19 @@
 
         rule (:rule state)
         measured ((:measured CSS-INFO) (:name rule))
-        value (if measured (px (int (.-value node))) (.-value node))
-        rstring (kstring (:name rule))]
+        unit-node (if measured (om/get-node owner "unit") nil)
+        unit (if unit-node (.-textContent unit-node) nil)
+        form (:format rule)
+        value (if form
+                (form (.-value node))
+                (if measured
+                (if (= unit "px")
+                  (px (int (.-value node)))
+                  (int (.-value node)))
+                (.-value node)))
+
+        rstring (or (:attr-str rule) (kstring (:name rule)))]
+
     (sug/fire! owner :style-change {:rule rstring :value value})
     (sug/fire! owner :style-set-done {})))
 
@@ -75,13 +85,17 @@
             parsed (if (nil? computed) [] (final/css-values computed))
             compound (and (:compound rule)
                           (< 1 (count parsed)))
+           measured ((:measured CSS-INFO) (:name rule))
+
            value (if compound
                    (measures->string parsed)
-                   (:value (first parsed)))
+                   (if measured
+                     (:value (first parsed))
+                     (:string (first parsed))))
            unit (:unit (first parsed))
            icon (:icon rule)
 
-           measured ((:measured CSS-INFO) (:name rule))
+
            compact ((:compact CSS-INFO) (:name rule))
            color-value ((:color-value CSS-INFO) (:name rule))
 
@@ -130,10 +144,10 @@
                              :onChange #(handle-change % data owner)
                              :onKeyPress #(when (== (.-keyCode %) 13)
                                             (end-edit % @data owner))
-                             :onBlur (fn [e])})))
+                             })))
 
          (when measured
-           (dom/div #js {:className "unit"} (or unit "")))
+           (dom/div #js {:className "unit" :ref "unit"} (or unit "")))
          (when measured
            (sug/make draggable data {:opts {:className "scrub"}
                                      :init-state {:message {:name (:name rule)}
@@ -160,16 +174,25 @@
                           (sug/fire! owner :style-set-done {})))
          :scrub (fn [e]
                   (when (= (:name e) (:name (om/get-state owner :rule)))
-                    (let [dx (* (first (:diff-location e)) .5)
+                    (let [rule (om/get-state owner :rule)
+                          dx (* (first (:diff-location e)) .5)
                           state (om/get-state owner)
                           node (om/get-node owner "input")
                           values (final/css-values (.-value node))
+                          unit-node (om/get-node owner "unit")
+                          unit (if unit-node (.-textContent unit-node) nil)
+                          form (:format rule)
+                          unit-fn (cond form form
+                                        (= "px" unit) px
+                                        (= "int" unit) int
+                                        :else identity)
                           changed-values (mapv #(int (+ (:value %) dx)) values)
-                          px-string (apply str (interpose " " (mapv px changed-values)))
+                          px-string (apply str (interpose " " (mapv unit-fn changed-values)))
                           input-value (if (multiple? changed-values)
                                         px-string
                                         (apply str (interpose " " changed-values)))
-                          rstring (kstring (:name (:rule state)))]
+                          rstring (or (:attr-str rule) (kstring (:name rule)))]
+
                       (aset node "value" input-value)
                       (sug/fire! owner :style-change {:rule rstring :value px-string}) )))}})
 

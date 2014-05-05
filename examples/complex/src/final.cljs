@@ -1,8 +1,11 @@
 (ns examples.complex.final
   (:require [goog.style :as gstyle]
-            [clojure.string :as string])
-  (:use [examples.complex.tokenize :only [tokenize-style]]
-        [examples.complex.data :only [SELECTION-BOX OVER-HANDLE MOUSE-DOWN MOUSE-POS MOUSE-DOWN-POS MOUSE-TARGET]]
+            [clojure.string :as string]
+            [om.core :as om :include-macros true])
+  (:use
+        [examples.complex.tokenize :only [tokenize-style remake]]
+        [examples.complex.data :only [SELECTION-BOX OVER-HANDLE MOUSE-DOWN MOUSE-POS MOUSE-DOWN-POS MOUSE-TARGET
+                                      MOUSE-DOWN-WORKSPACE]]
         [examples.complex.util :only [value-from-node clear-nodes! location clog px to? from? within?
                      get-xywh element-dimensions element-offset bounding-client-rect exclude]]))
 
@@ -13,6 +16,7 @@
         f (first words)
         r (rest words)]
     (apply str (flatten [f (map string/capitalize r)]))))
+
 
 
 
@@ -41,6 +45,8 @@
 (defn css-values [string]
   (let [split (css-split-value string)]
   (filter map? (mapv css-value split))))
+
+
 
 (defn box? [{:keys [x y w h b r] :as value}]
   (if (or (and x y)  (and w h) (and b r)) true false))
@@ -411,4 +417,29 @@
 
   (def last-mouse-pos @MOUSE-POS)))
 
+(defn create-element [e [x y] data insertion -d -o]
+  (let [app-state (get-in @data [:wrapper :app-state])
+        el-type (:active (:create-type (:create-settings app-state)))
+        position (get-in app-state [:create-settings :create-position :active])
+        new-el (js/$ (str "<" el-type " style='position:" position ";width:1px;height:1px;'></" el-type ">"))
+        info (js->clj (.-insertion_cache (.-arrange js/_t)))
+        inside (get info "inside")
+        before (get info "before")
+        after (get info "after")
+        left (get info "left")
+        right (get info "right")]
+    (prn "-----")
 
+    (cond (last after) (.before (js/$$ (get (first after) "element")) new-el)
+          (first before) (.after (js/$$ (get (last before) "element")) new-el))
+    ;(.append (js/$$ "body") new-el)
+    (let [{:keys [dom nodes]} (remake data)
+          uid (aget (aget new-el 0) "uid")]
+            (swap! data update-in [:wrapper :app-state] #(conj % {:nodes nodes :dom dom}))
+      ;(swap! data update-in [:wrapper :app-state :mode :active] #(identity "edit"))
+      (om/transact! -d [:wrapper :app-state :mode :active] #(identity "edit"))
+      (.hide_visuals (.-arrange js/_t))
+      (swap! data update-in [:wrapper :app-state :selection] #(identity #{uid}))
+      (swap! OVER-HANDLE #(identity :se-resize)))
+
+  ))

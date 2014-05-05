@@ -12,7 +12,8 @@
       )
   (:use
     [examples.complex.data :only [UID]]
-   [examples.complex.util :only [value-from-node clear-nodes! location clog px to? from? within? get-xywh element-dimensions element-offset workspace->doc]])
+   [examples.complex.util :only [toggle value-from-node clear-nodes! location clog px to? from? within?
+                                 get-xywh element-dimensions element-offset workspace->doc]])
    (:import [goog.ui IdGenerator]
            [goog.events EventType]))
 
@@ -31,9 +32,6 @@
 (defn toggle-expansion [e data owner opts]
   (om/transact! data :expanded not))
 
-(defn click-mode-option [data owner option]
-  (om/set-state! owner :active option)
-  (om/transact! data [:active] #(identity option)))
 
 
 (sug/defcomp render-count [data owner]
@@ -49,16 +47,20 @@
 
 (defn bool-box [data owner opts]
   (reify
-    om/IRender
-    (render [_]
-      (let [text (or (:text data) "")
-            value (:value data)]
+    om/IRenderState
+    (render-state [_ state]
+      (let [text (or (:text data) (:text state) (:text opts) "")
+            value (or (:value data) (:value state) (:value opts) false)
+            change (cond (:value data) #(om/transact! data [:value] not)
+                     (:onChange state) (:onChange state)
+                     (:onChange opts) (:onChange opts)
+                     :else #())]
 
        (dom/label #js {:className "bool"}
            (dom/p nil text)
            (dom/input #js {:type "checkbox"
                            :checked (:value data)
-                           :onChange #(om/transact! data [:value] not)}))))))
+                           :onChange change}))))))
 
 
 (sug/defcomp icon
@@ -81,17 +83,23 @@
   [data owner opts]
   {:render-state
     (fn [_ state]
-      (let [active (:view state)
+      (let [active (:active state)
             options (keys (:options opts))
             sorted (cons active (vec (disj (set options) active)))
             offsets (map #(apply str (interpose " " (map  px (get (:options opts) %)))) sorted) ]
       (apply dom/div #js {:className "icon-select"}
                (map (fn [v o] (dom/div #js {:value v
-                                   :onClick #(sug/fire! owner :set-view {:view v})}
+                                   :onClick #(sug/fire! owner (or (:onChange opts) :onChange) {:active v})}
                               (dom/div #js {:className "icon"
                                             :style #js {:background-position o}} "") (str v)))
                 sorted offsets))))})
 
+
+
+(defn click-mode-option [option data owner]
+  (om/transact! data [:active] #(identity option)))
+
+(set? #{1 2 3})
 
 (sug/defcomp modal-box [data owner opts]
   {:will-update
@@ -99,11 +107,23 @@
                  )
    :render-state
    (fn [_ state]
-      (let [row-count (count (:options data))
-            cname (str "mode-box " (when (true? (:disabled state)) "disabled"))]
+      (let [classes (or (:classes opts) " ")
+            target (cond (:options data) data
+                         (:options state) state
+                         (:options opts) opts)
+            active (cond (set? (:active target)) (:active target)
+                         (sequential? (:active target)) (set (:active target))
+                         :else #{(:active target)})
+            change (or (:onChange state) (:onChange opts)
+                       (if (:multiple state)
+                         (fn [a] (om/update-state! owner :active #(toggle %1 a))
+                           (om/transact! data [:active] #(toggle %1 a)))
+                         #(click-mode-option %1 data owner)))
+            row-count (count (:options target))
+            cname (str "mode-box " classes (when (true? (:disabled state)) "disabled"))]
       (apply dom/div #js {:className cname}
            (for [ridx (range 0 row-count)
-                 :let [row (nth (:options data) ridx)
+                 :let [row (nth (:options target) ridx)
                        amount (count row)]]
            (apply dom/div #js {:className "row"}
             (map-indexed (fn [idx part]
@@ -112,7 +132,7 @@
                          top (= 0 ridx)
                          bottom (= row-count (inc ridx))
                          class-str (str "option "
-                                        (when (= (:active data) part) "active ")
+                                        (when (contains? active part) "active ")
                                         (when (and top left) "top_left ")
                                         (when (and top right) "top_right ")
                                         (when (and bottom left) "bottom_left ")
@@ -120,9 +140,10 @@
                                         (when left "left ")
                                         (when (not-any? true? [left (and top left) (and top right)
                                                         (and bottom left) (and bottom right)]) "middle "))]
+
                      (dom/span #js {:className class-str
                                     :style #js {:width (str (/ 100 amount ) "%")}
-                                    :onClick #(click-mode-option data owner part)} part))) row))) )))})
+                                    :onClick (fn [e] (change part))} part))) row))) )))})
 
 
 
@@ -161,6 +182,8 @@
                               (when locked "locked ")
                               (when (expanded? token) "open "))
                   exp-class (cond (children? token) (cond (expanded? token) "exp-box expanded" :else "exp-box collapsed") :else "exp-box")]
+              (if-not (or ((:filter state) "all") ((:filter state) tag) (= "body" tag))
+                (dom/span nil "")
               (apply dom/div #js {:className node-class  :onClick (fn [e]
                                                                     (when-not hidden
                                                                     (sug/fire! owner :select-node {:uid uid})) false)}
@@ -192,9 +215,10 @@
                      (when (and (children? token) ) ;(expanded? token))
                        (for [child (:children node)]
                          (sug/make dom-node child {:opts {:nodes nodes}
-                                                   :state {:selection (:selection state)
+                                                   :state {:filter (:filter state)
+                                                           :selection (:selection state)
                                                            :mouse-target (:mouse-target state)}}))
-                       ))))})
+                       )))))})
 
 
 

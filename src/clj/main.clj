@@ -154,7 +154,6 @@
 
 
 
-
  ; (defmacro defmeta [name meta value]
  ;      `(def ~(with-meta name meta) ~value))
  ;  (defmeta foo {:arglist `(list a b)} `[~'a ~'b])

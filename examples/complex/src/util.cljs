@@ -1,5 +1,6 @@
 (ns examples.complex.util
   (:require [goog.style :as gstyle]
+            [clojure.string :as string]
             [om.core :as om :include-macros true])
   (:use [examples.complex.data :only [UID]]))
 
@@ -7,6 +8,16 @@
   (if (and (sequential? col)
            (< 1 (count col)))
     true false))
+
+(defn format-keyword
+  ([kw]
+   (format-keyword kw {":" ""}))
+  ([kw rep-map]
+   (let [rm (conj {":" ""} rep-map)
+         s-kw (str kw)]
+     (reduce
+      (fn [v [r1 r2]] (string/replace v (re-pattern r1) r2))
+      s-kw rm))))
 
 
 (defn- value-from-node
@@ -100,14 +111,33 @@
 
 
 
+(defn parse-file-path [path]
+  (let [split (mapv first (re-seq  #"([^\/]+)" path))
+        nombre (last split)
+        n-split (mapv first (re-seq  #"([^.]+)" nombre))
+        path-vect (vec (reverse (rest (reverse split))))
+        mime (if (> (count n-split 1))
+               (last n-split) nil)]
+    {:file-name nombre
+     :path-vect path-vect
+     :path-map (reduce (fn [a b] {b {:children a}}) (reverse (conj path-vect {nombre {:file-name nombre
+                                                                          :mime mime
+                                                                          :file-extension mime
+                                                                          :icon-link ""
+                                                                          :file-size 0
+                                                                          :key path}})))
+     :mime mime
+     :key path}))
+
+
+
+
 (def script "[3x 4y 10w 10h] [6i] [7x 8y]")
 
 (defn split-value [s]
   (let [sp (re-seq  #"(\d+)(\w+)" s)
         [vs ks] (rest (first  sp))]
     {(keyword ks) (int vs)}))
-
-(split-value "5x")
 
 (defn get-values [s]
   (re-seq  #"\d+\w+" s))
@@ -135,3 +165,10 @@
                 (first (filter #(not (:expanded %)) pathed))
                 (last pathed))]
     (:uid result)))
+
+
+(defn put-local [k v]
+  (.setItem (aget  js/window "localStorage") k v))
+
+(defn get-local [k]
+  (.getItem (aget  js/window "localStorage") k ))

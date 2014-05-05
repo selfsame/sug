@@ -9,7 +9,7 @@
    [cljs.core.async :as async :refer [>! <! put! chan]]
       )
   (:use
-
+   [examples.complex.filebrowser :only [file-browser]]
    [examples.complex.data :only [UID CSS-INFO KEYS-DOWN MOUSE-DOWN-WORKSPACE MOUSE-TARGET
                                  OVER-HANDLE MOUSE-DOWN MOUSE-DOWN-POS MOUSE-POS SELECTION-BOX]]
    [examples.complex.tokenize :only [tokenize-style]]
@@ -103,7 +103,11 @@
              wysiwyg (:wysiwyg app-state)]
          (dom/div nil
            (sug/make render-count app-state {:react-key (:uid state)})
-           (sug/make modal-box (:mode app-state) {})
+           (if-not wysiwyg
+             (sug/make modal-box (:mode app-state) {:opts {:classes "flooded "}})
+             (sug/make modal-box data {:opts {:classes "flooded "
+                                                           :active "wysiwyg"
+                                                           :options [["wysiwyg"]]}}))
            (if wysiwyg
              (row (label "wysiwyg")
                     (dom/button #js {:onClick
@@ -140,7 +144,8 @@
                                      (fn [e]
                                        (let [el (:el (get (:nodes @app-state) (first (:selection @app-state))))]
                                           (om/transact! data [:app-state :wysiwyg] #(identity el))
-                                          (.focus_on (.-wysiwyg (.-tools js/window)) (js/$ el)) ))} "start"))))
+                                          (.focus_on (.-wysiwyg (.-tools js/window)) (js/$ el)) ))} "start")
+                    )))
                   ))))})
 
 
@@ -175,6 +180,10 @@
                       )))))
              })
 
+(sug/defcomp multi [data owner]
+  {:render-state
+   (fn [_ state] (dom/p nil (prn-str data)))})
+
 
 (sug/defcomp history [data owner]
   {:should-update
@@ -184,13 +193,18 @@
                (:app-state next-props)))))
    :render-state
    (fn [_ state]
-       (let []
+       (let [app-state (:app-state data)]
          (dom/div nil
             (sug/make render-count (:app-state data) {:react-key (:uid state)})
             (dom/code nil
-                      (dom/button #js {:onClick #(sug/fire! owner :save-state {})} "save state"))
+                      (dom/button #js {:onClick #(sug/fire! owner :save-state {})} "save state")
+                      (sug/make multi {:selection (:selection app-state) :mouse-target (:mouse-target app-state)} {})
+                      ) )))})
 
-                  )))})
+
+
+
+
 
 
 (defn select! [uid-set uid]
@@ -199,7 +213,9 @@
     #{uid}))
 
 (sug/defcomp outliner [data owner opts]
-  {:should-update
+  {:init-state
+   (fn [_] {:filter #{"all"}})
+   :should-update
    (fn [this next-props next-state]
      (let [props (om/get-props owner)]
        (not (= (:app-state props)
@@ -210,12 +226,19 @@
             selection (:selection app-state)
             mouse-target (:mouse-target app-state)
             cname (str "select-" (:active (:element-filter app-state)) " " (when (:moving state) "moving"))]
+        (dom/div nil
+                 (dom/div #js {:className "fixed-header"}
+             (sug/make modal-box data {:state {:active (:filter state)
+                                               :options [["all" "div" "img" "body" "p" "h1" "h2"]]
+                                               :onChange (fn [a] (om/update-state! owner [:filter] #(toggle %1 a)))}}))
+
         (apply dom/div #js {:className cname :id "outliner"}
           (sug/make render-count app-state {:react-key (:uid state)})
            (for [child (:dom app-state)]
              (sug/make dom-node child {:opts {:nodes (:nodes app-state)}
-                                       :state {:selection (:selection app-state)
-                                               :mouse-target (:mouse-target app-state)}})))))
+                                       :state {:filter (:filter state)
+                                               :selection (:selection app-state)
+                                               :mouse-target (:mouse-target app-state)}}))))))
    :on {:select-node
         (fn [e] (let [uid (:uid e)
                       nodes (:nodes (:app-state @data))
@@ -361,9 +384,10 @@
 
 (defn tool-lookup [view data]
   (let [comps {:mode mode :history history :outliner outliner :options options
-               :style style :mini-map mini-map}
+               :style style :mini-map mini-map :file-browser file-browser}
         lenses {:mode data
                 :history data
+                :file-browser data
                 :outliner data
                 :style data
                 :options data
@@ -371,6 +395,7 @@
                 :word-processor data}
         fns {:mode  [:mode :edit-settings :create-settings :wysiwyg :selection :nodes]
              :history  [:selection :mouse-target :element-filter :nodes]
+             :file-browser [:mode :file-systems]
              :outliner [:dom :selection :mouse-target :element-filter :nodes :element-filter :wysiwyg]
              :style [:style-select :style-use-pseudo :style-pseudo
                      :style-use-pseudo-element :style-pseudo-element
@@ -412,7 +437,8 @@
 
 
            (dom/div #js {:className "title-overlay"}
-               (sug/make drop-down data {:state {:view view} :opts {:options (:views (:app-state data))}})
+               (sug/make drop-down data {:state {:active view} :opts {:onChange :set-view
+                                                                    :options (:views (:app-state data))}})
                (dom/p nil str-view)
 
                (sug/make icon data {:state {:x -48 :y -64}})
@@ -443,7 +469,7 @@
    :on {:tool-resize (fn [e]) ;use this channel to broadcast resize to descendants
         :set-view
         (fn [e]
-          (om/set-state! owner :view (:view e)))
+          (om/set-state! owner :view (:active e)))
         :drag-free
         (fn [e]
           (let [node (om/get-node owner "tool")

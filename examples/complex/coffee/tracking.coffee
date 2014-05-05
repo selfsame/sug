@@ -726,9 +726,9 @@ $(window).ready ->
 
     draw_arrange: ()->
       #if window.current_tool_name isnt 'newdiv' and not _t.outliner.move_triggered and not _t.clipboard.inserting
-      return
+      #  return
 
-      z = window.doc_zoom
+      z = window.doc_zoom 
       options =
           fillStyle: 'transparent'
           strokeStyle: 'red'
@@ -741,6 +741,8 @@ $(window).ready ->
       left = @arrange_left
       right = @arrange_right
       inside = @arrange_inside
+
+
       if before
         options.lineWidth = 3
         gradient = @make_arrange_gradient before, 'top', 'rgb(93,168,226)'

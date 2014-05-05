@@ -9,11 +9,12 @@
    [examples.complex.commands :as commands]
    [examples.complex.tools :as tools]
    [examples.complex.final :as final]
+   [examples.complex.filebrowser :as filebrowser]
    [goog.events :as events])
   (:use
 
     [examples.complex.data :only [UID GLOBAL INTERFACE MOUSE-TARGET KEYS-DOWN
-                                  OVER-HANDLE MOUSE-DOWN-POS MOUSE-DOWN MOUSE-POS MOUSE-DOWN-WORKSPACE]]
+                                  OVER-HANDLE MOUSE-DOWN-POS MOUSE-DOWN MOUSE-POS MOUSE-DOWN-WORKSPACE INSERTION]]
     [examples.complex.util :only [expanded-node value-from-node clear-nodes! location clog px to? from? within? style!
                      descendant? get-xywh element-dimensions element-offset exclude toggle]]
     [examples.complex.components :only [icon modal-box dom-node draggable]])
@@ -24,11 +25,7 @@
 
 (declare DATA)
 
-(defn put-local [k v]
-  (.setItem (aget  js/window "localStorage") k v))
 
-(defn get-local [k]
-  (.getItem (aget  js/window "localStorage") k ))
 
 (defn _t []
   (aget js/window "_t"))
@@ -271,7 +268,7 @@
                         (map (fn [w]
                                (sug/make
                                 tools/toolbox
-                                (:app-state (:wrapper data))
+                                (:wrapper data)
                                 {:react-key (:uid w)
                                  :init-state {:uid (:uid w)
                                               :view (:view w)
@@ -335,8 +332,10 @@
   (let [target (.-target e)
         uid (.-uid target)
         nodes (get-in @DATA [:wrapper :app-state :nodes])
+
         expanded-uid (expanded-node nodes uid)
         [x y] (doc->workspace [(.-clientX e) (.-clientY e)])]
+
     (swap! MOUSE-DOWN #(identity false))
     (swap! MOUSE-DOWN-WORKSPACE #(identity false))
     (swap! MOUSE-POS #(identity [x y]))
@@ -347,25 +346,38 @@
            (when @OVER-HANDLE
              (final/finalize-handle-interaction! DATA))))))
 
-(defn check-mousedown [e]
+(defn check-mousedown [e data owner]
   (let [target (.-target e)
-        [x y] (doc->workspace [(.-clientX e) (.-clientY e)])]
+        [x y] (doc->workspace [(.-clientX e) (.-clientY e)])
+        app-mode (get-in @DATA [:wrapper :app-state :mode :active])]
+
     (when (descendant? target (js/workspace "html"))
-      (swap! MOUSE-DOWN-WORKSPACE #(identity true)))
+      (swap! MOUSE-DOWN-WORKSPACE #(identity true))
+      (when (= "create" app-mode) (final/create-element e [x y] DATA INSERTION data owner)))
     (swap! MOUSE-DOWN #(identity true))
     (swap! MOUSE-DOWN-POS #(identity [x y]))
     (swap! MOUSE-POS #(identity [x y]))))
 
 
-
+(defn show-insertion [e x y]
+  (let [target (.-target e)
+        on-workspace (descendant? target (js/workspace "html"))]
+    (when on-workspace
+      (let [insertion (.find_insertion (.-arrange js/_t) (clj->js {:target (.-target e) :clientX x :clientY y}))]
+        (swap! INSERTION #(identity insertion))
+        (final/set-cursor :workspace "crosshair")
+        (.display (.-arrange js/_t) insertion)
+        (.draw_arrange (.-tracking js/_t))))))
 
 (defn check-mousemove [e]
   (let [target (.-target e)
         uid (.-uid target)
         uid-path (.-uid_path target)
         nodes (get-in @DATA [:wrapper :app-state :nodes])
+        app-mode (get-in @DATA [:wrapper :app-state :mode :active])
         expanded-uid (expanded-node nodes uid)
         [x y] (doc->workspace [(.-clientX e) (.-clientY e)])]
+    (when (= "create" app-mode) (show-insertion e x y))
 
     (swap! MOUSE-POS #(identity [x y]))
     (if (not @MOUSE-DOWN)
@@ -444,6 +456,7 @@
 
   {:will-mount
    (fn [_]
+     (.mousedown (js/$ js/window) #(check-mousedown % data owner))
       (.keydown (js/$ js/window)  #(handle-keydown % data owner))
         (.keyup (js/$ js/window)  #(handle-keyup %  data owner)))
    :will-update
@@ -465,6 +478,7 @@
 
           (let [{:keys [dom nodes]} (tokenize/remake data)]
             (om/transact! data [:wrapper :app-state] #(conj % {:nodes nodes :dom dom})) ))
+        :save-state (fn [e] )
         :toggle-app-mode
         (fn [e] (om/transact! data [:wrapper :app-state :mode :active]
                               #(if (= % "edit") "create" "edit")))
@@ -483,13 +497,14 @@
                                                                   {:dom [(tokenize/make (first (.toArray (js/$$ "body"))) [] NODES)]
                                                                    :nodes @NODES}))))
 
+  (swap! DATA update-in [:wrapper :app-state :file-systems :data :local-storage] filebrowser/get-local-files)
+
+
+  (om/root dom-app DATA {:target (.getElementById js/document "main")
+                         :tx-listen (fn [m t] (prn (:path m) (:old-value m) (:new-value m)) )})
 
 
 
-  (om/root dom-app DATA {:target (.getElementById js/document "main")})
-
-
-        (.mousedown (js/$ js/window) #(check-mousedown %))
 
         (.bind (js/$ js/window) "mousemove" check-mousemove)
         (.on (js/$ js/window) "mouseup" #(check-mouseup %))

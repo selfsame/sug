@@ -33,6 +33,8 @@
 (def MOUSE-DOWN-POS (atom nil))
 (def MOUSE-POS (atom nil))
 
+(def INSERTION (atom false))
+
 (def CSS-INFO {:measured #{:width :height
                                     :left :top :right :bottom
                                    :min-height :min-width
@@ -44,7 +46,8 @@
                                     :padding-left :padding-right
                                     :border-top :border-bottom
                                     :border-left :border-right
-                                   :z-index :transform:rotate}
+                                   :z-index :-webkit-transform
+                                   :line-height}
 
                :quad #{:margin :padding :border :border-radius}
 
@@ -81,6 +84,9 @@
                             :subs [{:name :padding-top} {:name :padding-left}
                                    {:name :padding-right} {:name :padding-bottom}]}
 
+                           {:name :line-height :default "auto"
+                            :units ["float" "px"]}
+
                            {:name :color :default "none"}
                            {:name :background-color :default "none"}
 
@@ -93,8 +99,12 @@
                             :options ["none" "left" "right" "inherit"]
                             :icon "img/style_icons/clear.png"}
                            {:name :z-index :default "auto"}
-                           {:name :transform:rotate :default ""
+
+                           {:name :-webkit-transform :attr-str "webkitTransform"
+                            :units ["deg"] :default "none"
+                            :format (fn [n] (str "rotate(" n "deg)"))
                             :icon "img/style_icons/rotate.png"}
+
                            {:name :border :default "0px"
                             :compound {:measure #{:?} :color #{:?} :word #{:?}}
                             :sub-title "advanced"
@@ -161,11 +171,28 @@
      :options {:rulers {:show {:value true :text "show rulers"}
                         :show-guides {:value true :text "show guides"}
                         :snap-guides {:value true :text "snap to guides"}}}
-     :views {:mode [-32 0] :style [0 -16]
-                       :outliner [-16 0] :history [0 -32] :options [0 0]}
-               }
+     :views {:mode [-32 0] :style [0 -16] :file-browser [-64 -64]
+             :outliner [-16 0] :history [0 -32] :options [0 0]}
 
-     }
+     :file-systems
+       {:choices {:local-storage [-16 0]
+                  :native [0 -48]
+                  :google-drive [-16 -16]}
+
+        :data {:local-storage {}
+               :native  {:children
+                         {"." {:children
+                               {"iframe.html" {:file-name "iframe.html"
+                                               :mime "html"
+                                               :file-extension "html"
+                                               :key "./iframe.html"}
+                                "demo" {:children {"css" {:children {}}
+                                                   "img" {:children {}}
+                                                   "index.html" {:file-name "index.html"
+                                                                 :mime "html"
+                                                                 :file-extension "html"
+                                                                 :key "./demo/index.html"}}}}}}}
+               :google-drive {}}}}}
    :commands {:toggle-app-mode {:key-down 9
                                 :key-held []
                                 :name "toggle edit/create mode"}
@@ -258,21 +285,21 @@
                             :spacing [.3 .7]
                             :stack [
                                     {:uid (guid) :view :mode}
-                                    {:uid (guid) :view :style}
+                                    ;{:uid (guid) :view :style}
                                     ]}
 
 
                :right-shelf {:align :right
-                             :spacing [.6 .25 .15]
+                             :spacing [.5 .2 .15 .15]
                              :stack [
-                                     {:uid (guid) :view :outliner}
-                                     ;{:uid (guid) :view :mini-map :tabbed [:mini-map :outliner]}
+                                     ;{:uid (guid) :view :outliner}
+                                     ;{:uid (guid) :view :file-browser}
                                      {:uid (guid) :view :options }
                                      {:uid (guid) :view :history }]}
 
                :undocked [
-                          ;{:uid (guid) :view :style :tabbed [:style :outliner :word-processor]
-                          ; :xywh [700 100 280 400] }
+                          {:uid (guid) :view :options
+                           :xywh [500 100 280 400] }
 
 
                           ]}})

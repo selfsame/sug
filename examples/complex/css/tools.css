@@ -328,3 +328,41 @@ font-size: 11px;
 .view .dropdown div.icon {
   margin: -4px 0px;
 }
+
+.file-node .dropdown{
+width: 16px;
+  height:16px;
+position: absolute;
+padding-top: 4px;
+}
+
+.file-node > .icon{
+position:absolute;
+margin-left:20px;}
+
+.file-node > p{
+padding-left: 40px;
+font-family:source-code-pro;
+font-size:12px;
+height:16px;}
+
+
+.view .fixed-footer{
+position:absolute;
+bottom:0px;
+border-top:1px solid gray;
+width:100%;}
+
+
+.view .fixed-middle{
+  position:absolute;
+  top:26px; left:0px; right:0px; bottom:27px;
+  overflow-y:auto;
+  width:100%;}
+
+
+.view .fixed-header{
+  position:absolute;
+  top:0px; left:0px; right:0px;
+border-bottom:1px solid gray;
+width:100%;}
