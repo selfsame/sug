@@ -10,4 +10,4 @@ pom.xml
 /src/om
 .lein-deps-sum
 *.js
-!examples/complex/js/libs/*
+!/examples/complex/js/libs/*
