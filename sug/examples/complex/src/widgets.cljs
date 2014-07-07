@@ -118,8 +118,8 @@
               (dom/p #js {:className "name"} (str rule-name) ))
               (dom/div #js {:className "remove"
                             :onClick #(do
-                                        (sug/fire! owner :style-change {:rule rule-name :value ""})
-                                        (sug/fire! owner :style-set-done {})) } "."))
+                                        (sug/emit! :style-change {:rule rule-name :value ""})
+                                        (sug/emit! :style-set-done {})) } "."))
        (when icon
          (dom/img #js {:className "icon" :src icon}))
        (dom/div #js {:className "input-box"}
@@ -171,7 +171,7 @@
                           (sug/private! owner :scrubbing true)))
          :scrub-stop (fn [e]
                         (when (= (:name e) (:name (om/get-state owner :rule)))
-                          (sug/fire! owner :style-set-done {})))
+                          (sug/emit! :style-set-done {})))
          :scrub (fn [e]
                   (when (= (:name e) (:name (om/get-state owner :rule)))
                     (let [rule (om/get-state owner :rule)
@@ -194,9 +194,6 @@
                           rstring (or (:attr-str rule) (kstring (:name rule)))]
 
                       (aset node "value" input-value)
-                      (sug/fire! owner :style-change {:rule rstring :value px-string}) )))}})
+                      (sug/emit! :style-change {:rule rstring :value px-string}) )))}})
 
 
-(apply str (interpose " " (mapv px [11 6])))
-
-(mapv #(int (+ (:value %) 1)) (final/css-values "10px 5px"))

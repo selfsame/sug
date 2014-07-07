@@ -66,7 +66,7 @@
                 :compiler {
                            :output-to "examples/complex/main.js"
                            :output-dir "examples/complex/out"
-                           :source-map true
+
                            :optimizations :none}}
                {:id "squares"
                 :source-paths ["src" "examples/squares/src"]

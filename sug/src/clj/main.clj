@@ -35,7 +35,7 @@
   `(let [~'state (~'om/get-state ~'__owner)
          ~'c-edit (get-in ~'state [:customize-tool])
          ~'c-val (get-in ~'state [:custom ~k])
-         ~'tog (~'sug/make ~'icon ~'data
+         ~'tog (~'om/build ~'icon ~'data
                            {:opts {:className "config"
                                    :onClick #(~'om/update-state! ~'__owner [:custom ~k] not )}
                             :state {:x (if ~'c-val 0 -16 ) :y -80}})]
@@ -75,16 +75,14 @@
         should-update (:should-update map-body)
         will-update (:will-update map-body)
         did-update (:did-update map-body)
-        will-unmount (:will-unmount map-body)
+        will-unmount (or (:will-unmount map-body) '(fn [this#] ))
         render  (:render map-body)
         render-state  (:render-state map-body)
 
 
         on-events (or (:on map-body) {})
-        on-event-keys (keys on-events)
-        on-chan-map (into {} (map (fn
-                           [pair] (let [k (first pair) v (last pair)]
-                           {k {:chan '(chan) :f v }} )) on-events))]
+        catch-events (or (:catch map-body) {})
+       ]
 
   `(defn ~name-symbol ~args
      (let [~'__owner ~owner
@@ -100,9 +98,18 @@
           will-mount `(
           ~'om.core/IWillMount
            (~'will-mount  ~(first (rest will-mount))
+
+
+           (~'om/set-state! ~owner :__handlers ~catch-events)
+           (~'sug/-register-broadcasts ~catch-events)
+
+
+
            (~'om/set-state! ~owner :_event_handlers ~on-events)
            (~'om/set-state! ~owner :_events
                (~'sug/-register (~'om/get-state ~owner :_events) ~on-events))
+
+
 
            ~@(rest (rest will-mount)))))
 
@@ -135,6 +142,7 @@
          will-unmount `(
         ~'om.core/IWillUnmount
          (~'will-unmount   ~(first (rest will-unmount ))
+         (~'sug/-unmount-events ~app ~owner)
          ~@(rest  (rest will-unmount )))))
 
        ~@(when

@@ -186,9 +186,10 @@
               (if-not (or ((:filter state) "all") ((:filter state) tag) (= "body" tag))
                 (dom/span nil "")
               (apply dom/div #js {:className node-class  :onClick (fn [e]
+                                                                    (prn state)
                                                                     (when-not hidden
 
-                                                                      (sug/fire! owner :select-node {:uid uid})) false)}
+                                                                      (sug/emit! :select-node {:uid uid})) false)}
                      (dom/span #js {:className (str "outliner_background " selected-class)}
 
                                (sug/make draggable data {:opts {:className "node-drag"}
@@ -201,8 +202,9 @@
                                (dom/div #js {:className exp-class
                                              :onClick
                                              (fn [e]
+                                               (sug/emit! :alert {:m "ues"})
                                                         (when (:expanded @node)
-                                                          (sug/fire! owner :collapsing-nodes {:target @token :nodes (child-nodes [@node])}))
+                                                          (sug/emit! :collapsing-nodes {:target @token :nodes (child-nodes [@node])}))
                                                         (toggle-expansion e token owner opts)
                                                         (toggle-expansion e node owner opts) false)
                                              }))
@@ -210,9 +212,9 @@
                      (when (:id token) (dom/span #js {:className "id-name"} (:id token)))
 
                      (sug/make icon data {:state {:x (if hidden -64 -48) :y -16}
-                                          :opts {:onClick #(sug/fire! owner :toggle-hide {:uid uid})}})
+                                          :opts {:onClick #(sug/emit! :toggle-hide {:uid uid})}})
                      (sug/make icon data {:state {:x (if locked -48 -32) :y -96}
-                                          :opts {:onClick #(sug/fire! owner :toggle-lock {:uid uid})}})
+                                          :opts {:onClick #(sug/emit! :toggle-lock {:uid uid})}})
                      ;(sug/make render-count data {:react-key uid})
                      ;(dom/span nil (str "  " (rand-int 100)))
                      (when (and (children? token) (expanded? node))

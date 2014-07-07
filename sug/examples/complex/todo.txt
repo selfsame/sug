@@ -31,3 +31,10 @@ SALVAGE:
   * File browser backend
   * WYSIWYG mode
   * CSS compiling?
+
+
+SUG OPTIMIZATION
+  The pub/sub heirarchy is suspicious as a bottleneck (deep heirarchies have large amounts of event chans)
+  * global event chan map, when a handler is defined ensure a key/chan exists in the map and register the handler
+  * sparse heirarchy for bubbling - the heirarchy is implicit with the path+key, when an event is fired it checks the
+    map for each possible ancestor (which would have registered a chan if it handles that event)

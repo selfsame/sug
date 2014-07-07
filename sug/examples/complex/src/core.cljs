@@ -244,7 +244,7 @@
 
 
         (dom/div nil
-                 (sug/make menubar (:menubar (:interface data)) {})
+                 (om/build menubar (:menubar (:interface data)) {})
                  (sug/make tool-shelf (:wrapper data) {:init-state {:align :left :shelf (:left-shelf (:interface data))
                                                                :width (first layout) :height (- wh 24) :left 0 :top 24}
                                                  :state (conj {}
@@ -411,7 +411,7 @@
             cv (last command)]
 
       (prn :COMMAND (first result) ck)
-      (sug/fire! owner ck {:down keys-down} )))))
+      (sug/emit! ck {:down keys-down} )))))
 
 (defn handle-keydown [e data owner]
   (let [target (.-target e)
@@ -447,7 +447,7 @@
          s-nodes (select-keys nodes selection)
          altered-uids (flatten (map alter-fn (vals s-nodes)))
          shift (contains? (:down e) 16)]
-     (prn (vals s-nodes))
+     ;(prn (vals s-nodes))
      (om/transact! data [:wrapper :app-state :selection] (if shift
                                                            #(apply conj % altered-uids)
                                                            #(set altered-uids))) ))
@@ -476,7 +476,7 @@
     (fn [_]
         (sug/make interface data {})
       )
-   :on {:dom-restructure
+   :catch {:dom-restructure
         (fn [e]
 
           (let [{:keys [dom nodes]} (tokenize/remake data)]
@@ -513,7 +513,8 @@
 
 
 (defn watch-nodes [m t]
-  (prn (:path m) (:old-value m) (:new-value m)))
+  ;(prn (:path m) (:old-value m) (:new-value m))
+  )
 
 (js/$ (fn []
   (def NODES (atom {}))

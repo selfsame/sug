@@ -235,7 +235,7 @@
         (apply dom/div #js {:className cname :id "outliner"}
           (sug/make render-count app-state {:react-key (:uid state)})
            (for [child (:dom app-state)]
-             (sug/make dom-node {:dom child
+             (om/build dom-node {:dom child
                                  :selection (:selection app-state)
                                  :mouse-target (:mouse-target app-state)
                                  :nodes (:nodes app-state)}
@@ -245,7 +245,7 @@
                                        ;        :selection (:selection app-state)
                                        ;        :mouse-target (:mouse-target app-state)}
                                  }))))))
-   :on {:select-node
+   :catch {:select-node
         (fn [e] (let [uid (:uid e)
                       nodes (:nodes (:app-state @data))
                       node (get nodes uid)
@@ -359,7 +359,10 @@
                                                           (update-in pass1 [:app-state :nodes]
                                                                      #(select-keys % (:selection app-state)))))
                                                     :init-state {:rule rule}}))) css-rules)))))
-              :on {:style-change
+              :on {}
+              :catch {:alert
+                      (fn [e] (prn "CATCH: " e ".." owner))
+              :style-change
                    (fn [e]
                      (let [app-state (:app-state @data)
                            rule (:rule e)
@@ -461,7 +464,7 @@
             (dom/div #js {:className "view"
                           :id (if (= view :outliner) "outliner_view" "")}
               (when-let [[component lense filter-keys] (tool-lookup view data)]
-                (sug/make component lense {:init-state {:uid (:uid state) :custom {}}
+                (om/build component lense {:init-state {:uid (:uid state) :custom {}}
                                            :react-key (:uid state)
                                            :state {:customize-tool (:customize-tool state)}
                                            :fn (fn [col] (update-in col [:app-state] #(select-keys % filter-keys)))})))

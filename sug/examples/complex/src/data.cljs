@@ -285,7 +285,7 @@
                             :spacing [.3 .7]
                             :stack [
                                     {:uid (guid) :view :mode}
-                                    {:uid (guid) :view :history}
+                                    {:uid (guid) :view :style}
                                     ]}
 
 
@@ -295,7 +295,8 @@
                                      {:uid (guid) :view :outliner}
                                      {:uid (guid) :view :file-browser}
                                      {:uid (guid) :view :options }
-                                     {:uid (guid) :view :history }]}
+                                     {:uid (guid) :view :history }
+                                     ]}
 
                :undocked [
                           ;{:uid (guid) :view :options

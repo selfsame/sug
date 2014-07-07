@@ -5,11 +5,13 @@
   (:require
       [om.core :as om :include-macros true]
       [om.dom :as dom :include-macros true]
-      [cljs.core.async :as async :refer [>! <! put! chan pipe pub sub close!]]))
+      [cljs.core.async :as async :refer [>! <! put! chan pipe pub sub unsub close!]]))
 
 (def PRIVATE (atom {}))
 
-@PRIVATE
+(def BROADCAST-CHANS (atom {}))
+(def BROADCAST-PUBS (atom {}))
+(def COMPONENT-CHANS (atom {}))
 
 (defn owner-key [owner]
   (let [cursor (.-__om_cursor (.-props owner))
@@ -61,6 +63,15 @@
                   ) (vals exant) (vals clones) ))
    (merge clones virgin)))
 
+(defn -register-broadcasts [handler-map]
+  (let [names (keys handler-map)]
+    (dorun (map (fn [k]
+                  (when-not (k @BROADCAST-CHANS)
+                    (swap! BROADCAST-CHANS #(conj % {k (chan)})))
+                  (when-not (k @BROADCAST-PUBS)
+                    (swap! BROADCAST-PUBS #(conj % {k (pub (k @BROADCAST-CHANS) map?)})))
+                  ) names))))
+
 (defn p-sub->c [p]
   (let [c (chan)]
         (sub p true c) c))
@@ -74,6 +85,8 @@
           (when (#{:up :both} dir) (put! (:chan-up target) e)) ))))))
 
 
+
+
 (defn fire! [o k e]
   (-fire! :up o k e))
 
@@ -85,6 +98,11 @@
 
 (defn fire-both! [o k e]
   (-fire! :both o k e))
+
+(defn emit! [k e]
+  (when-let [c (k @BROADCAST-CHANS)]
+    (put! c e)))
+
 
 (defn -event-setup [app owner]
   (let [state (om/get-state owner)]
@@ -101,10 +119,47 @@
                (do
                  (go (while true (f (<! c-u) app owner )))
                  (go (while true (f (<! c-d) app owner )))
-                  ))))))))
+                  ))))))
 
 
+      (when-let [__handlers (:__handlers state)]
+          (let [subz
+           (into {} (for [k (keys __handlers)
+           :let [f (k __handlers)
+                 p (k @BROADCAST-PUBS)
+                 c (p-sub->c p)]]
+             (do
+               (go (while true (f (<! c))))
+               {k c})))]
+
+            (when (> (count subz) 0)
+              (om/set-state! owner :__subs subz))))
+
+    ))
 
 
+(defn -unmount-events [app owner]
+  (let [state (om/get-state owner)]
+    (let [subz (or (:__subs state) [])]
+      (dorun
+        (map (fn [k-sub]
+               (let [k (first k-sub)
+                     c (last k-sub)
+                     p (k @BROADCAST-PUBS)]
 
+               (unsub p true c)
+
+                 )) subz))
+       (om/set-state! owner :__subs '())
+      )))
+
+
+(def c (chan))
+(def p (pub c map?))
+(def s (sub p true (chan)))
+
+(go (while true (prn (<! s))))
+
+(put! c {:a 5})
+(unsub p true s)
 
